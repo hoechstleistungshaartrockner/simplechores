@@ -4,11 +4,17 @@
     "step": {
       "user": {
         "title": "SimpleChores Setup",
-        "description": "Configure the SimpleChores integration.",
+        "description": "Configure the basic settings for SimpleChores.",
         "data": {
           "enable_points_system": "Enable points system",
-          "points_label": "Name of points",
           "n_members": "Number of household members"
+        }
+      },
+      "points_label": {
+        "title": "Points Label",
+        "description": "Enter a custom label for your points.",
+        "data": {
+          "points_label": "Label"
         }
       }
     }

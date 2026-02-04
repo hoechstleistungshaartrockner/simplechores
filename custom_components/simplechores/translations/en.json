@@ -1,0 +1,19 @@
+{
+  "title": "SimpleChores",
+  "config": {
+    "step": {
+      "user": {
+        "title": "SimpleChores Setup",
+        "description": "Configure the SimpleChores integration.",
+        "data": {
+          "enable_points_system": "Enable points system",
+          "points_label": "Name of points",
+          "n_members": "Number of household members"
+        }
+      }
+    }
+  },
+  "errors": {
+    "single_instance_allowed": "Only one instance of SimpleChores is allowed."
+  }
+}

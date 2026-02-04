@@ -1,0 +1,15 @@
+.HA_VERSION
+.ha_run.lock
+.storage/
+automations.yaml
+blueprints/
+configuration.yaml
+home-assistant*
+scenes.yaml
+scripts.yaml
+secrets.yaml
+.cloud/
+deps/
+tts/
+custom_components/*/__pycache__/
+custom_components/*/*.pyc

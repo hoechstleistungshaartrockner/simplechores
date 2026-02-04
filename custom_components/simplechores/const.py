@@ -1,0 +1,87 @@
+"""
+Constants for the SimpleChores integration.
+
+This file is used for defining constant values that are used throughout
+the SimpleChores integration. These constants help maintain consistency
+and make it easier to manage configuration and state within the integration.
+"""
+
+from homeassistant.const import Platform
+import logging
+
+
+# General constants
+DOMAIN = "simplechores"
+LOGGER = logging.getLogger(__package__)
+PLATFORMS = [
+    Platform.SENSOR, 
+    Platform.SWITCH,
+    ]
+
+# Storage and Versioning
+STORAGE_KEY = "simplechores_storage"
+STORAGE_VERSION = 1
+DATA_CHORES = "chores"
+DATA_MEMBERS = "members"
+
+# Update Interval
+UPDATE_INTERVAL = 10  # in minutes
+
+# Configuration Keys
+CONF_CHORE_NAME = "chore_name"
+CONF_MEMBERS = "members"
+CONF_N_MEMBERS = "n_members"
+CONF_POINTS_LABEL = "points_label"
+CONF_POINTS_ICON = "points_icon"
+CONF_ENABLE_POINTS_SYSTEM = "enable_points_system"
+CONF_ENABLE_REMINDERS = "enable_reminders"
+
+# Options Flow Management
+OPTIONS_FLOW_ENABLE_POINTS_SYSTEM = "enable_points_system"
+OPTIONS_FLOW_ENABLE_REMINDERS = "enable_reminders"
+OPTIONS_FLOW_RESET_CHORE_COUNTS = "reset_chore_counts"
+OPTIONS_FLOW_RESET_POINTS = "reset_points"
+
+
+# Default Values
+DEFAULT_CHORE_NAME = "New Chore"
+DEFAULT_MEMBERS = ["Default Member"]
+DEFAULT_N_MEMBERS = 1
+DEFAULT_POINTS_LABEL = "Points"
+DEFAULT_POINTS_ICON = "mdi:star"
+DEFAULT_ENABLE_POINTS_SYSTEM = True
+DEFAULT_ENABLE_REMINDERS = True
+DEFAULT_RESET_CHORE_COUNTS = False
+DEFAULT_RESET_POINTS = False
+
+# Recurrence Intervals
+CONF_RECURRENCE_PATTERN = "recurrence_pattern"
+CONF_RECURRENCE_INTERVAL = "recurrence_interval"
+CONF_RECURRENCE_DAY_OF_MONTH = "recurrence_day_of_month"
+CONF_RECURRENCE_WEEK_OF_MONTH = "recurrence_week_of_month"  # 1-4 or -1 for last
+CONF_RECURRENCE_DAY_OF_WEEK = "recurrence_day_of_week"  # 0-6 (Monday-Sunday)
+CONF_RECURRENCE_SPECIFIC_WEEKDAYS = "recurrence_specific_weekdays"  # List of days
+CONF_RECURRENCE_ANNUAL_MONTH = "recurrence_annual_month"
+CONF_RECURRENCE_ANNUAL_DAY = "recurrence_annual_day"
+
+# recurrence patterns
+FREQUENCY_NONE = "none"
+FREQUENCY_DAILY = "daily"
+FREQUENCY_MONTHLY_DAY = "monthly_day"
+FREQUENCY_MONTHLY_WEEKDAY = "monthly_weekday"
+FREQUENCY_INTERVAL_DAYS = "interval_days"
+FREQUENCY_AFTER_COMPLETION_DAYS = "after_completion_days"
+FREQUENCY_SPECIFIC_DAYS = "specific_days"
+FREQUENCY_ANNUAL = "annual"
+DEFAULT_RECURRENCE_PATTERN = FREQUENCY_DAILY
+
+# Assignment Modes 
+ASSIGN_MODE_ALWAYS = "always"  # Each member does their own (e.g., clean own desk)
+ASSIGN_MODE_ROTATE = "rotate"  # Take turns doing community task
+ASSIGN_MODE_RANDOM = "random"  # Random member does community task
+DEFAULT_ASSIGN_MODE = ASSIGN_MODE_ALWAYS
+
+# Chore State Attributes
+CHORE_STATE_COMPLETED = "completed"
+CHORE_STATE_PENDING = "pending"
+CHORE_STATE_OVERDUE = "overdue"

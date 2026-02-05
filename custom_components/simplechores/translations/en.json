@@ -3,19 +3,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "SimpleChores Setup",
-        "description": "Configure the basic settings for SimpleChores.",
+        "title": "Welcome to SimpleChores",
+        "description": "Hi there! Thank you for checking out SimpleChores.\n\nClick the 'Next' button to continue setting up the integration.",
+        "submit": "Next"
+      },
+      "point_system": {
+        "title": "Points System",
+        "description": "Would you like to enable a points system for tracking household contributions?",
         "data": {
-          "enable_points_system": "Enable points system",
-          "n_members": "Number of household members"
-        }
+          "enable_points_system": "Enable points system"
+        },
+        "submit": "Next"
       },
       "points_label": {
         "title": "Points Label",
-        "description": "Enter a custom label for your points.",
+        "description": "How would you like to call your points? (e.g., Points, Stars, Credits)",
         "data": {
-          "points_label": "Label"
-        }
+          "points_label": "Points label"
+        },
+        "submit": "Next"
+      },
+      "n_members": {
+        "title": "Household Members",
+        "description": "How many members are in your household and will be tracking chores? (You can add more members later if needed.)",
+        "data": {
+          "n_members": "Number of members"
+        },
+        "submit": "Next"
+      },
+      "member_names": {
+        "title": "Member Names",
+        "description": "Enter the name for member {member_number} of {total_members}.",
+        "data": {
+          "member_name": "Member name"
+        },
+        "submit": "Submit"
       }
     }
   },

@@ -1,0 +1,67 @@
+update_points:
+  name: Update member points
+  description: Add or subtract points from a member's counters
+  fields:
+    member:
+      name: Member
+      description: Name of the household member
+      required: true
+      example: "John"
+      selector:
+        text:
+    offset:
+      name: Points offset
+      description: Number of points to add (positive) or subtract (negative)
+      required: true
+      example: 10
+      selector:
+        number:
+          mode: box
+          min: -10000
+          max: 10000
+    periods:
+      name: Periods
+      description: Which period counters to update (defaults to all)
+      required: false
+      example: ["daily", "weekly"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Daily
+              value: daily
+            - label: Weekly
+              value: weekly
+            - label: Monthly
+              value: monthly
+            - label: Yearly
+              value: yearly
+
+reset_points:
+  name: Reset member points
+  description: Reset a member's point counters to zero
+  fields:
+    member:
+      name: Member
+      description: Name of the household member
+      required: true
+      example: "John"
+      selector:
+        text:
+    periods:
+      name: Periods
+      description: Which period counters to reset (defaults to all)
+      required: false
+      example: ["daily", "weekly"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Daily
+              value: daily
+            - label: Weekly
+              value: weekly
+            - label: Monthly
+              value: monthly
+            - label: Yearly
+              value: yearly

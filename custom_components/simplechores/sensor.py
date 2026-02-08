@@ -43,7 +43,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up SimpleChores sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    member_names = entry.data.get(CONF_MEMBERS, [])
+    storage = hass.data[DOMAIN][entry.entry_id]["storage"]
+    
+    # Get members from storage (not entry.data)
+    member_names = list(storage.get_members().keys())
 
     entities = []
     

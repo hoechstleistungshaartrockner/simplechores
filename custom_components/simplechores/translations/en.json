@@ -41,6 +41,93 @@
       }
     }
   },
+  "services": {
+    "update_points": {
+      "name": "Update member points",
+      "description": "Add or subtract points from a member's counters",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Name of the household member"
+        },
+        "offset": {
+          "name": "Points offset",
+          "description": "Number of points to add (positive) or subtract (negative)"
+        },
+        "periods": {
+          "name": "Periods",
+          "description": "Which period counters to update (defaults to all)"
+        }
+      }
+    },
+    "reset_points": {
+      "name": "Reset member points",
+      "description": "Reset a member's point counters to zero",
+      "fields": {
+        "member": {
+          "name": "Member",
+          "description": "Name of the household member"
+        },
+        "periods": {
+          "name": "Periods",
+          "description": "Which period counters to reset (defaults to all)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage Members",
+        "description": "Choose an action to manage household members.",
+        "menu_options": {
+          "create_member": "Create new member",
+          "update_member": "Update existing member",
+          "delete_member": "Delete member"
+        }
+      },
+      "create_member": {
+        "title": "Create New Member",
+        "description": "Add a new household member to track chores and points.",
+        "data": {
+          "member_name": "Member name"
+        }
+      },
+      "update_member": {
+        "title": "Select Member to Update",
+        "description": "Choose which member you want to update.",
+        "data": {
+          "member": "Member"
+        }
+      },
+      "update_member_details": {
+        "title": "Update Member: {member_name}",
+        "description": "Update the member's name or manage their points.",
+        "data": {
+          "new_name": "New name",
+          "points_action": "Points action",
+          "points_offset": "Points offset (for offset action)"
+        },
+        "data_description": {
+          "new_name": "Change the member's name",
+          "points_action": "Choose how to modify points",
+          "points_offset": "Add (positive) or subtract (negative) points from all counters"
+        }
+      },
+      "delete_member": {
+        "title": "Delete Member",
+        "description": "Select a member to permanently delete. This will remove all their data and entities.",
+        "data": {
+          "member": "Member to delete"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Member name is required",
+      "member_exists": "A member with this name already exists",
+      "no_members": "No members exist to manage"
+    }
+  },
   "errors": {
     "single_instance_allowed": "Only one instance of SimpleChores is allowed."
   }

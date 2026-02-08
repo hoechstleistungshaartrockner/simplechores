@@ -104,3 +104,23 @@ SENSOR_NAME_OVERDUE_CHORES = "Overdue Chores"
 
 # Units
 UNIT_CHORES = "chores"
+
+# Service Names
+SERVICE_UPDATE_POINTS = "update_points"
+SERVICE_RESET_POINTS = "reset_points"
+
+# Period Types
+PERIOD_DAILY = "daily"
+PERIOD_WEEKLY = "weekly"
+PERIOD_MONTHLY = "monthly"
+PERIOD_YEARLY = "yearly"
+
+# Reset Configuration
+CONF_WEEK_START_DAY = "week_start_day"  # 0 = Monday, 6 = Sunday
+DEFAULT_WEEK_START_DAY = 0  # Monday
+
+# Storage Keys for Last Reset Timestamps
+KEY_LAST_RESET_DAILY = "last_reset_daily"
+KEY_LAST_RESET_WEEKLY = "last_reset_weekly"
+KEY_LAST_RESET_MONTHLY = "last_reset_monthly"
+KEY_LAST_RESET_YEARLY = "last_reset_yearly"

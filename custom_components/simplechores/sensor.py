@@ -15,7 +15,24 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_MEMBERS, LOGGER
+from .const import (
+    DOMAIN,
+    CONF_MEMBERS,
+    CONF_POINTS_LABEL,
+    DEFAULT_POINTS_LABEL,
+    LOGGER,
+    DEVICE_MANUFACTURER,
+    DEVICE_MODEL_MEMBER,
+    DEVICE_SW_VERSION,
+    ICON_POINTS,
+    ICON_CHORES_COMPLETED,
+    ICON_PENDING_CHORES,
+    ICON_OVERDUE_CHORES,
+    SENSOR_NAME_CHORES_COMPLETED,
+    SENSOR_NAME_PENDING_CHORES,
+    SENSOR_NAME_OVERDUE_CHORES,
+    UNIT_CHORES,
+)
 from .coordinator import SimpleChoresCoordinator
 
 
@@ -71,9 +88,9 @@ class SimpleChoresBaseSensor(CoordinatorEntity, SensorEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, f"member_{self.member_name}")},
             name=self.member_name,
-            manufacturer="SimpleChores",
-            model="Household Member",
-            sw_version="1.0.0",
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL_MEMBER,
+            sw_version=DEVICE_SW_VERSION,
         )
 
 
@@ -90,11 +107,12 @@ class MemberPointsSensor(SimpleChoresBaseSensor):
         """Initialize the points sensor."""
         super().__init__(coordinator, entry, member_name)
         self.period = period
-        self._attr_name = f"{period.capitalize()} Points"
+        points_label = entry.data.get(CONF_POINTS_LABEL, DEFAULT_POINTS_LABEL)
+        self._attr_name = f"{period.capitalize()} {points_label}"
         self._attr_unique_id = f"{DOMAIN}_{member_name}_points_{period}"
-        self._attr_icon = "mdi:star"
+        self._attr_icon = ICON_POINTS
         self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_native_unit_of_measurement = "points"
+        self._attr_native_unit_of_measurement = points_label.lower()
 
     @property
     def native_value(self) -> int:
@@ -121,11 +139,11 @@ class MemberChoresSensor(SimpleChoresBaseSensor):
         """Initialize the chores sensor."""
         super().__init__(coordinator, entry, member_name)
         self.period = period
-        self._attr_name = f"{period.capitalize()} Chores Completed"
+        self._attr_name = f"{period.capitalize()} {SENSOR_NAME_CHORES_COMPLETED}"
         self._attr_unique_id = f"{DOMAIN}_{member_name}_chores_{period}"
-        self._attr_icon = "mdi:checkbox-marked-circle"
+        self._attr_icon = ICON_CHORES_COMPLETED
         self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_native_unit_of_measurement = "chores"
+        self._attr_native_unit_of_measurement = UNIT_CHORES
 
     @property
     def native_value(self) -> int:
@@ -150,11 +168,11 @@ class MemberPendingChoresSensor(SimpleChoresBaseSensor):
     ) -> None:
         """Initialize the pending chores sensor."""
         super().__init__(coordinator, entry, member_name)
-        self._attr_name = "Pending Chores"
+        self._attr_name = SENSOR_NAME_PENDING_CHORES
         self._attr_unique_id = f"{DOMAIN}_{member_name}_pending_chores"
-        self._attr_icon = "mdi:clipboard-list"
+        self._attr_icon = ICON_PENDING_CHORES
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_native_unit_of_measurement = "chores"
+        self._attr_native_unit_of_measurement = UNIT_CHORES
 
     @property
     def native_value(self) -> int:
@@ -183,11 +201,11 @@ class MemberOverdueChoresSensor(SimpleChoresBaseSensor):
     ) -> None:
         """Initialize the overdue chores sensor."""
         super().__init__(coordinator, entry, member_name)
-        self._attr_name = "Overdue Chores"
+        self._attr_name = SENSOR_NAME_OVERDUE_CHORES
         self._attr_unique_id = f"{DOMAIN}_{member_name}_overdue_chores"
-        self._attr_icon = "mdi:alert-circle"
+        self._attr_icon = ICON_OVERDUE_CHORES
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_native_unit_of_measurement = "chores"
+        self._attr_native_unit_of_measurement = UNIT_CHORES
 
     @property
     def native_value(self) -> int:

@@ -84,3 +84,23 @@ DEFAULT_ASSIGN_MODE = ASSIGN_MODE_ALWAYS
 CHORE_STATE_COMPLETED = "completed"
 CHORE_STATE_PENDING = "pending"
 CHORE_STATE_OVERDUE = "overdue"
+
+# Device Info
+DEVICE_MANUFACTURER = "SimpleChores"
+DEVICE_MODEL_MEMBER = "Household Member"
+DEVICE_SW_VERSION = "1.0.0"
+
+# Sensor Icons
+ICON_POINTS = "mdi:star"
+ICON_CHORES_COMPLETED = "mdi:checkbox-marked-circle"
+ICON_PENDING_CHORES = "mdi:clipboard-list"
+ICON_OVERDUE_CHORES = "mdi:alert-circle"
+
+# Sensor Names
+SENSOR_NAME_POINTS = "Points"
+SENSOR_NAME_CHORES_COMPLETED = "Chores Completed"
+SENSOR_NAME_PENDING_CHORES = "Pending Chores"
+SENSOR_NAME_OVERDUE_CHORES = "Overdue Chores"
+
+# Units
+UNIT_CHORES = "chores"

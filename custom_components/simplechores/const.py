@@ -14,8 +14,7 @@ import logging
 DOMAIN = "simplechores"
 LOGGER = logging.getLogger(__package__)
 PLATFORMS = [
-    Platform.SENSOR, 
-    Platform.SWITCH,
+    Platform.SENSOR,
     ]
 
 # Storage and Versioning

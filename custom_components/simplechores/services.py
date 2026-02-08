@@ -10,24 +10,24 @@ from .const import (
     LOGGER,
     SERVICE_UPDATE_POINTS,
     SERVICE_RESET_POINTS,
-    PERIOD_DAILY,
-    PERIOD_WEEKLY,
-    PERIOD_MONTHLY,
-    PERIOD_YEARLY,
+    TRACKER_PERIOD_DAILY,
+    TRACKER_PERIOD_WEEKLY,
+    TRACKER_PERIOD_MONTHLY,
+    TRACKER_PERIOD_YEARLY,
 )
 
 # Service schemas
 UPDATE_POINTS_SCHEMA = vol.Schema({
     vol.Required("member"): cv.string,
     vol.Required("offset"): vol.Coerce(int),
-    vol.Optional("periods", default=[PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY]): 
-        vol.All(cv.ensure_list, [vol.In([PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY])]),
+    vol.Optional("periods", default=[TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]): 
+        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])]),
 })
 
 RESET_POINTS_SCHEMA = vol.Schema({
     vol.Required("member"): cv.string,
-    vol.Optional("periods", default=[PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY]): 
-        vol.All(cv.ensure_list, [vol.In([PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY])]),
+    vol.Optional("periods", default=[TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]): 
+        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])]),
 })
 
 
@@ -38,7 +38,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle the update_points service call."""
         member_name = call.data["member"]
         offset = call.data["offset"]
-        periods = call.data.get("periods", [PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY])
+        periods = call.data.get("periods", [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))
@@ -66,7 +66,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_reset_points(call: ServiceCall) -> None:
         """Handle the reset_points service call."""
         member_name = call.data["member"]
-        periods = call.data.get("periods", [PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY])
+        periods = call.data.get("periods", [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))

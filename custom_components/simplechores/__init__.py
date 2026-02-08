@@ -7,7 +7,18 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_change
 
-from .const import DOMAIN, CONF_MEMBERS, PLATFORMS
+from .const import (
+    DOMAIN, 
+    CONF_MEMBERS, 
+    PLATFORMS,
+    PERIOD_DAILY, 
+    PERIOD_WEEKLY, 
+    PERIOD_MONTHLY, 
+    PERIOD_YEARLY,
+    DEVICE_MANUFACTURER, 
+    DEVICE_MODEL_MEMBER, 
+    DEVICE_SW_VERSION,
+    )
 from .storage_manager import SimpleChoresStorageManager
 from .coordinator import SimpleChoresCoordinator
 from . import services
@@ -18,10 +29,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up SimpleChores from a config entry."""
-    from .const import (
-        PERIOD_DAILY, PERIOD_WEEKLY, PERIOD_MONTHLY, PERIOD_YEARLY,
-        DEVICE_MANUFACTURER, DEVICE_MODEL_MEMBER, DEVICE_SW_VERSION,
-    )
     
     storage = SimpleChoresStorageManager(hass)
     await storage.async_load()

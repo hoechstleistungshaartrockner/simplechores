@@ -109,11 +109,11 @@ UNIT_CHORES = "chores"
 SERVICE_UPDATE_POINTS = "update_points"
 SERVICE_RESET_POINTS = "reset_points"
 
-# Period Types
-PERIOD_DAILY = "daily"
-PERIOD_WEEKLY = "weekly"
-PERIOD_MONTHLY = "monthly"
-PERIOD_YEARLY = "yearly"
+# Chore tracker and point tracker Period Types
+TRACKER_PERIOD_DAILY = "daily"
+TRACKER_PERIOD_WEEKLY = "weekly"
+TRACKER_PERIOD_MONTHLY = "monthly"
+TRACKER_PERIOD_YEARLY = "yearly"
 
 # Reset Configuration
 CONF_WEEK_START_DAY = "week_start_day"  # 0 = Monday, 6 = Sunday

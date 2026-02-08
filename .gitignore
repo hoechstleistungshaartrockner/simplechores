@@ -12,4 +12,6 @@ secrets.yaml
 deps/
 tts/
 custom_components/*/__pycache__/
+custom_components/*/*/__pycache__/
 custom_components/*/*.pyc
+custom_components/__init__.py

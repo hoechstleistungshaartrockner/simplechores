@@ -106,3 +106,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
             await services.async_unload_services(hass)
     
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove a config entry and clean up storage."""
+    # Remove the storage file when the integration is deleted
+    storage = SimpleChoresStorageManager(hass)
+    await storage.store.async_remove()

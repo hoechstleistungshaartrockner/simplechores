@@ -149,8 +149,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         
         # Update chore in storage
         storage.update_chore(chore_id, chore)
-        await storage.async_save()
-        await coordinator.async_refresh_data()
+        
+        # Immediately update coordinator data to refresh UI
+        coordinator.async_set_updated_data(storage.data)
+        
+        # Save to disk in background (don't await to avoid blocking)
+        hass.async_create_task(storage.async_save())
 
     # Register services
     hass.services.async_register(

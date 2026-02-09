@@ -49,8 +49,14 @@ class Chore:
             possible_assignees=data.get("possible_assignees", []),
         )
     
-    def mark_completed(self, member_name: str, completion_date: date | None = None) -> None:
-        """Mark the chore as completed by a specific member."""
+    def mark_completed(self, member_name: str, storage=None, completion_date: date | None = None) -> None:
+        """Mark the chore as completed by a specific member.
+        
+        Args:
+            member_name: Name of the member completing the chore
+            storage: Storage manager instance (optional, for updating member points/counters)
+            completion_date: Date of completion (defaults to today)
+        """
         if completion_date is None:
             completion_date = date.today()
         
@@ -58,6 +64,20 @@ class Chore:
         self.last_completed = completion_date.isoformat()
         self.days_overdue = 0
         self.assign()
+        
+        # Update member points and counters if storage is provided
+        if storage is not None:
+            member = storage.get_member(member_name)
+            if member is not None:
+                # Add points to member
+                if self.points > 0:
+                    member.add_points(self.points)
+                
+                # Increment chore completion counter
+                member.add_chore_completed()
+                
+                # Update member in storage
+                storage.update_member(member)
         
     def assign(self) -> None:
         """Assign the chore to a member based on the assignment mode."""

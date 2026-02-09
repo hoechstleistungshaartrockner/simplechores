@@ -104,6 +104,14 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         return list(members.keys())
 
     @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        return {
+            "chore_id": self.chore_id,
+            "chore_name": self.chore_name,
+        }
+
+    @property
     def current_option(self) -> str | None:
         """Return the currently assigned member."""
         storage = self.coordinator.storage
@@ -195,6 +203,14 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         return list(members.keys())
 
     @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        return {
+            "chore_id": self.chore_id,
+            "chore_name": self.chore_name,
+        }
+
+    @property
     def current_option(self) -> str | None:
         """Return the currently selected option (always None - it's an action trigger)."""
         return None
@@ -213,19 +229,11 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
             LOGGER.error(f"Member {option} not found")
             return
         
-        # Mark chore as completed
-        chore.mark_completed(option, date.today())
-        
-        # Add points to member
-        if chore.points > 0:
-            member.add_points(chore.points)
-        
-        # Increment chore completion counter
-        member.add_chore_completed()
+        # Mark chore as completed (handles points and counter updates)
+        chore.mark_completed(option, storage, date.today())
         
         # Update storage
         storage.update_chore(self.chore_id, chore)
-        storage.update_member(member)
         await storage.async_save()
         
         # Refresh coordinator to update all entities
@@ -285,6 +293,14 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         return [CHORE_STATE_PENDING, CHORE_STATE_COMPLETED, CHORE_STATE_OVERDUE]
 
     @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        return {
+            "chore_id": self.chore_id,
+            "chore_name": self.chore_name,
+        }
+
+    @property
     def current_option(self) -> str | None:
         """Return the current status."""
         storage = self.coordinator.storage
@@ -312,7 +328,7 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
             # When marking as completed manually, use the assigned member if available
             # Otherwise, don't award points to anyone
             if chore.assigned_to:
-                chore.mark_completed(chore.assigned_to)
+                chore.mark_completed(chore.assigned_to, storage)
             else:
                 chore.status = CHORE_STATE_COMPLETED
                 chore.last_completed = date.today().isoformat()

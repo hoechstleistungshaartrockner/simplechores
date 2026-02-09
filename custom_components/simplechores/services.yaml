@@ -65,3 +65,24 @@ reset_points:
               value: monthly
             - label: Yearly
               value: yearly
+
+toggle_chore:
+  name: Toggle chore status
+  description: Toggle a chore between pending and completed. If pending/overdue, marks as completed by the specified member. If completed, marks as pending.
+  fields:
+    entity_id:
+      name: Entity ID
+      description: Entity ID of the chore status select entity
+      required: true
+      example: "select.simplechores_dishwashing_status"
+      selector:
+        entity:
+          domain: select
+          integration: simplechores
+    member:
+      name: Member
+      description: Name of the member completing the chore
+      required: true
+      example: "John"
+      selector:
+        text:

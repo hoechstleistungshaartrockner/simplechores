@@ -101,6 +101,14 @@ class ChorePointsNumber(CoordinatorEntity, NumberEntity):
             return 0
         return chore.points
 
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        return {
+            "chore_id": self.chore_id,
+            "chore_name": self.chore_name,
+        }
+
     async def async_set_native_value(self, value: float) -> None:
         """Update the points value."""
         storage = self.coordinator.storage

@@ -26,6 +26,7 @@ from .const import (
 )
 
 from homeassistant.helpers import device_registry as dr
+from .options_flow import SimpleChoresOptionsFlow
 
 
 class SimpleChoresConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

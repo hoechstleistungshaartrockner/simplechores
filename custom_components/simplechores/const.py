@@ -98,9 +98,9 @@ ICON_OVERDUE_CHORES = "mdi:alert-circle"
 
 # Sensor Names
 SENSOR_NAME_POINTS = "Points"
-SENSOR_NAME_CHORES_COMPLETED = "Chores Completed"
-SENSOR_NAME_PENDING_CHORES = "Pending Chores"
-SENSOR_NAME_OVERDUE_CHORES = "Overdue Chores"
+SENSOR_NAME_CHORES_COMPLETED = "Chores completed"
+SENSOR_NAME_PENDING_CHORES = "Chores pending"
+SENSOR_NAME_OVERDUE_CHORES = "Chores overdue"
 
 # Units
 UNIT_CHORES = "chores"

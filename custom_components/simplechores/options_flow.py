@@ -25,8 +25,7 @@ from .const import (
 )
 from .member import Member
 
-
-
+from homeassistant.helpers import device_registry as dr
 
 
 

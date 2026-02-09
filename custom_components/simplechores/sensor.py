@@ -120,8 +120,8 @@ class MemberPointsSensor(SimpleChoresBaseSensor):
         super().__init__(coordinator, entry, member_name)
         self.period = period
         points_label = entry.data.get(CONF_POINTS_LABEL, DEFAULT_POINTS_LABEL)
-        self._attr_name = f"{period.capitalize()} {points_label}"
-        self._attr_unique_id = f"{DOMAIN}_{member_name}_points_{period}"
+        self._attr_name = f"{points_label} earned {period.replace('_', ' ')}"
+        self._attr_unique_id = f"{DOMAIN}_{member_name}_points_earned_{period}"
         self._attr_icon = ICON_POINTS
         self._attr_state_class = SensorStateClass.TOTAL
         self._attr_native_unit_of_measurement = points_label.lower()
@@ -151,7 +151,7 @@ class MemberChoresSensor(SimpleChoresBaseSensor):
         """Initialize the chores sensor."""
         super().__init__(coordinator, entry, member_name)
         self.period = period
-        self._attr_name = f"{period.capitalize()} {SENSOR_NAME_CHORES_COMPLETED}"
+        self._attr_name = f"{SENSOR_NAME_CHORES_COMPLETED} {period.replace('_', ' ')}"
         self._attr_unique_id = f"{DOMAIN}_{member_name}_chores_{period}"
         self._attr_icon = ICON_CHORES_COMPLETED
         self._attr_state_class = SensorStateClass.TOTAL

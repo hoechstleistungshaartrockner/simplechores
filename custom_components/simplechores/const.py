@@ -15,6 +15,8 @@ DOMAIN = "simplechores"
 LOGGER = logging.getLogger(__package__)
 PLATFORMS = [
     Platform.SENSOR,
+    Platform.SELECT,
+    Platform.NUMBER,
     ]
 
 # Storage and Versioning
@@ -88,6 +90,7 @@ CHORE_STATE_OVERDUE = "overdue"
 # Device Info
 DEVICE_MANUFACTURER = "SimpleChores"
 DEVICE_MODEL_MEMBER = "Household Member"
+DEVICE_MODEL_CHORE = "Household Chore"
 DEVICE_SW_VERSION = "1.0.0"
 
 # Sensor Icons

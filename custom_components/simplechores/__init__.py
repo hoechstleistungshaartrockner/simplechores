@@ -12,7 +12,8 @@ from .const import (
     CONF_MEMBERS, 
     PLATFORMS,
     DEVICE_MANUFACTURER, 
-    DEVICE_MODEL_MEMBER, 
+    DEVICE_MODEL_MEMBER,
+    DEVICE_MODEL_CHORE,
     DEVICE_SW_VERSION,
     )
 from .storage_manager import SimpleChoresStorageManager
@@ -58,6 +59,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             name=member_name,
             manufacturer=DEVICE_MANUFACTURER,
             model=DEVICE_MODEL_MEMBER,
+            sw_version=DEVICE_SW_VERSION,
+        )
+    
+    # Register devices for each chore in storage
+    all_chores = storage.get_chores()
+    
+    for chore_id, chore in all_chores.items():
+        device_reg.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, f"chore_{chore_id}")},
+            name=chore.name,
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL_CHORE,
             sw_version=DEVICE_SW_VERSION,
         )
 

@@ -7,6 +7,7 @@ from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, STORAGE_VERSION, DATA_CHORES, DATA_MEMBERS, STORAGE_KEY_PREFIX_LAST_RESET
 from .member import Member
+from .chore import Chore
 
 
 class SimpleChoresStorageManager:
@@ -31,8 +32,39 @@ class SimpleChoresStorageManager:
         await self.store.async_save(self.data)
 
     # convenience helpers for later
-    def get_chores(self):
-        return self.data.get(DATA_CHORES, {})
+    def get_chores(self) -> Dict[str, Chore]:
+        """Get all chores as Chore objects."""
+        chores_data = self.data.get(DATA_CHORES, {})
+        return {
+            chore_id: Chore.from_dict(data)
+            for chore_id, data in chores_data.items()
+        }
+    
+    def get_chore(self, chore_id: str) -> Chore | None:
+        """Get a specific chore by ID."""
+        chores_data = self.data.get(DATA_CHORES, {})
+        if chore_id in chores_data:
+            return Chore.from_dict(chores_data[chore_id])
+        return None
+    
+    def add_chore(self, chore_id: str, chore: Chore) -> None:
+        """Add a new chore."""
+        self.data[DATA_CHORES][chore_id] = chore.to_dict()
+    
+    def update_chore(self, chore_id: str, chore: Chore) -> None:
+        """Update an existing chore."""
+        self.data[DATA_CHORES][chore_id] = chore.to_dict()
+    
+    def delete_chore(self, chore_id: str) -> bool:
+        """Delete a chore. Returns True if deleted, False if not found."""
+        if chore_id in self.data.get(DATA_CHORES, {}):
+            del self.data[DATA_CHORES][chore_id]
+            return True
+        return False
+    
+    def chore_exists(self, chore_id: str) -> bool:
+        """Check if a chore exists."""
+        return chore_id in self.data.get(DATA_CHORES, {})
 
     def get_members(self) -> Dict[str, Member]:
         """Get all members as Member objects."""

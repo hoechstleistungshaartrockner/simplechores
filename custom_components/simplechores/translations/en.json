@@ -78,30 +78,47 @@
   "options": {
     "step": {
       "init": {
-        "title": "Manage Members",
+        "title": "SimpleChores Management",
+        "description": "Choose what you want to manage.",
+        "menu_options": {
+          "manage_members": "Manage Members",
+          "manage_chores": "Manage Chores"
+        }
+      },
+      "manage_members": {
+        "title": "Member Management",
         "description": "Choose an action to manage household members.",
         "menu_options": {
-          "create_member": "Create new member",
-          "update_member": "Update existing member",
+          "add_member": "Add new member",
+          "edit_member": "Edit existing member",
           "delete_member": "Delete member"
         }
       },
-      "create_member": {
-        "title": "Create New Member",
+      "manage_chores": {
+        "title": "Chore Management",
+        "description": "Choose an action to manage household chores.",
+        "menu_options": {
+          "add_chore": "Add new chore",
+          "edit_chore": "Edit existing chore",
+          "delete_chore": "Delete chore"
+        }
+      },
+      "add_member": {
+        "title": "Add New Member",
         "description": "Add a new household member to track chores and points.",
         "data": {
           "member_name": "Member name"
         }
       },
-      "update_member": {
-        "title": "Select Member to Update",
-        "description": "Choose which member you want to update.",
+      "edit_member": {
+        "title": "Select Member to Edit",
+        "description": "Choose which member you want to edit.",
         "data": {
           "member": "Member"
         }
       },
-      "update_member_details": {
-        "title": "Update Member: {member_name}",
+      "edit_member_details": {
+        "title": "Edit Member: {member_name}",
         "description": "Update the member's name or manage their points.",
         "data": {
           "new_name": "New name",
@@ -120,12 +137,47 @@
         "data": {
           "member": "Member to delete"
         }
+      },
+      "add_chore": {
+        "title": "Add New Chore",
+        "description": "Create a new household chore to track.",
+        "data": {
+          "chore_name": "Chore name",
+          "points": "Points earned",
+          "assignment_mode": "Assignment mode",
+          "assignees": "Who can do this chore?"
+        },
+        "data_description": {
+          "chore_name": "Name of the chore",
+          "points": "How many points are earned for completing this chore",
+          "assignment_mode": "How should this chore be assigned?",
+          "assignees": "Select which members can be assigned this chore"
+        }
+      },
+      "edit_chore": {
+        "title": "Edit Chore",
+        "description": "Select a chore to edit.",
+        "data": {
+          "chore": "Chore to edit"
+        }
+      },
+      "delete_chore": {
+        "title": "Delete Chore",
+        "description": "Select a chore to permanently delete.",
+        "data": {
+          "chore": "Chore to delete"
+        }
       }
     },
     "error": {
-      "name_required": "Member name is required",
+      "name_required": "Name is required",
       "member_exists": "A member with this name already exists",
-      "no_members": "No members exist to manage"
+      "chore_exists": "A chore with this name already exists",
+      "no_members": "No members exist. Please add members first.",
+      "no_chores": "No chores exist to manage",
+      "member_not_found": "Member not found",
+      "chore_not_found": "Chore not found",
+      "not_implemented": "This feature is not yet implemented"
     }
   },
   "errors": {

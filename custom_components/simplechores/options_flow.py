@@ -22,8 +22,12 @@ from .const import (
     TRACKER_PERIOD_THIS_MONTH,
     TRACKER_PERIOD_THIS_YEAR,
     DEVICE_MANUFACTURER, DEVICE_MODEL_MEMBER, DEVICE_SW_VERSION,
+    ASSIGN_MODE_ALWAYS,
+    ASSIGN_MODE_ROTATE,
+    ASSIGN_MODE_RANDOM,
 )
 from .member import Member
+from .chore import Chore
 
 from homeassistant.helpers import device_registry as dr
 
@@ -35,17 +39,26 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry):
         """Initialize options flow."""
         self._selected_member = None
-        self._operation = None
+        self._selected_chore = None
 
     async def async_step_init(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Manage the options for member management."""
+        """Main menu - select between managing members or chores."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["create_member", "update_member", "delete_member"],
+            menu_options=["manage_members", "manage_chores"],
         )
 
-    async def async_step_create_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Create a new household member."""
+    # === Member Management Menu ===
+    
+    async def async_step_manage_members(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Show member management submenu."""
+        return self.async_show_menu(
+            step_id="manage_members",
+            menu_options=["add_member", "edit_member", "delete_member"],
+        )
+
+    async def async_step_add_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new household member."""
         errors = {}
         
         if user_input is not None:
@@ -86,13 +99,13 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         })
         
         return self.async_show_form(
-            step_id="create_member",
+            step_id="add_member",
             data_schema=schema,
             errors=errors,
         )
 
-    async def async_step_update_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Select a member to update."""
+    async def async_step_edit_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Select a member to edit."""
         storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
         members = storage.get_members()
         
@@ -101,19 +114,19 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         
         if user_input is not None:
             self._selected_member = user_input.get("member")
-            return await self.async_step_update_member_details()
+            return await self.async_step_edit_member_details()
         
         schema = vol.Schema({
             vol.Required("member"): vol.In(list(members.keys())),
         })
         
         return self.async_show_form(
-            step_id="update_member",
+            step_id="edit_member",
             data_schema=schema,
         )
 
-    async def async_step_update_member_details(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Update member details."""
+    async def async_step_edit_member_details(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Edit member details."""
         errors = {}
         storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
         members = storage.get_members()
@@ -136,7 +149,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 if member is None:
                     errors["base"] = "member_not_found"
                     return self.async_show_form(
-                        step_id="update_member_details",
+                        step_id="edit_member_details",
                         data_schema=schema,
                         errors=errors,
                     )
@@ -202,13 +215,103 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         })
         
         return self.async_show_form(
-            step_id="update_member_details",
+            step_id="edit_member_details",
             data_schema=schema,
             errors=errors,
             description_placeholders={
                 "member_name": self._selected_member,
             },
         )
+
+    # === Chore Management Menu ===
+    
+    async def async_step_manage_chores(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Show chore management submenu."""
+        return self.async_show_menu(
+            step_id="manage_chores",
+            menu_options=["add_chore", "edit_chore", "delete_chore"],
+        )
+
+    async def async_step_add_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore."""
+        errors = {}
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        members = storage.get_members()
+        
+        if not members:
+            return self.async_abort(reason="no_members")
+        
+        if user_input is not None:
+            chore_name = user_input.get("chore_name", "").strip()
+            points = user_input.get("points", 0)
+            assignment_mode = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
+            assignees = user_input.get("assignees", [])
+            
+            # Validate chore name
+            if not chore_name:
+                errors["chore_name"] = "name_required"
+            else:
+                # Create unique ID for chore (slugified name + timestamp)
+                import time
+                chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
+                
+                # Create the chore
+                chore = Chore(
+                    name=chore_name,
+                    points=points,
+                    assignment_mode=assignment_mode,
+                    possible_assignees=assignees if assignees else list(members.keys()),
+                )
+                
+                # Assign initial member if needed
+                if assignment_mode == ASSIGN_MODE_ALWAYS and assignees:
+                    chore.assigned_to = assignees[0]
+                elif assignment_mode == ASSIGN_MODE_ROTATE and assignees:
+                    chore.assigned_to = assignees[0]
+                elif assignment_mode == ASSIGN_MODE_RANDOM and assignees:
+                    import random
+                    chore.assigned_to = random.choice(assignees)
+                
+                # Add to storage
+                storage.add_chore(chore_id, chore)
+                await storage.async_save()
+                
+                # Reload entry to create device and entities for the new chore
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                
+                return self.async_create_entry(title="", data={})
+        
+        # Create member list for assignees
+        member_list = list(members.keys())
+        
+        schema = vol.Schema({
+            vol.Required("chore_name"): cv.string,
+            vol.Optional("points", default=10): cv.positive_int,
+            vol.Required("assignment_mode", default=ASSIGN_MODE_ALWAYS): vol.In({
+                ASSIGN_MODE_ALWAYS: "Always (same person)",
+                ASSIGN_MODE_ROTATE: "Rotate (take turns)",
+                ASSIGN_MODE_RANDOM: "Random",
+            }),
+            vol.Optional("assignees", default=member_list): cv.multi_select(
+                {member: member for member in member_list}
+            ),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore",
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_edit_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Select a chore to edit."""
+        # TODO: Implement chore editing
+        return self.async_abort(reason="not_implemented")
+
+    async def async_step_delete_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Delete a chore."""
+        # TODO: Implement chore deletion
+        return self.async_abort(reason="not_implemented")
 
     async def async_step_delete_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Delete a household member."""

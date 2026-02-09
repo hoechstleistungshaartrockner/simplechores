@@ -23,6 +23,7 @@ from .const import (
     LOGGER,
     DEVICE_MANUFACTURER,
     DEVICE_MODEL_MEMBER,
+    DEVICE_MODEL_CHORE,
     DEVICE_SW_VERSION,
     ICON_POINTS,
     ICON_CHORES_COMPLETED,
@@ -56,9 +57,13 @@ async def async_setup_entry(
     
     # Get members from storage (not entry.data)
     member_names = list(storage.get_members().keys())
+    
+    # Get chores from storage
+    chores = storage.get_chores()
 
     entities = []
     
+    # Member sensors
     for member_name in member_names:
         # Points tracking sensors
         entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY))
@@ -75,6 +80,12 @@ async def async_setup_entry(
         # Status sensors
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
         entities.append(MemberOverdueChoresSensor(coordinator, entry, member_name))
+    
+    # Chore sensors
+    for chore_id, chore in chores.items():
+        entities.append(ChoreStatusSensor(coordinator, entry, chore_id, chore.name))
+        entities.append(ChoreDaysOverdueSensor(coordinator, entry, chore_id, chore.name))
+        entities.append(ChoreNextDueSensor(coordinator, entry, chore_id, chore.name))
 
     async_add_entities(entities)
 
@@ -233,3 +244,125 @@ class MemberOverdueChoresSensor(SimpleChoresBaseSensor):
                     overdue_count += 1
         
         return overdue_count
+
+
+# === Chore Sensors ===
+
+
+class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Chore sensors."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        chore_id: str,
+        chore_name: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self.chore_id = chore_id
+        self.chore_name = chore_name
+        self._entry = entry
+        self._attr_has_entity_name = True
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information about this chore."""
+        # Get chore from storage to show status and assigned member
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        
+        if chore:
+            hw_info = f"{chore.status.capitalize()}"
+            if chore.assigned_to:
+                hw_info += f" • Assigned to {chore.assigned_to}"
+        else:
+            hw_info = "Unknown"
+        
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"chore_{self.chore_id}")},
+            name=self.chore_name,
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL_CHORE,
+            sw_version=DEVICE_SW_VERSION,
+            hw_version=hw_info,
+            suggested_area="Chores",
+        )
+
+
+class ChoreStatusSensor(SimpleChoresChoreBaseSensor):
+    """Sensor for tracking chore status."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        chore_id: str,
+        chore_name: str,
+    ) -> None:
+        """Initialize the status sensor."""
+        super().__init__(coordinator, entry, chore_id, chore_name)
+        self._attr_name = "Status"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_status"
+        self._attr_icon = "mdi:clipboard-check"
+
+    @property
+    def native_value(self) -> str:
+        """Return the chore status."""
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        if chore is None:
+            return "unknown"
+        return chore.status
+
+
+class ChoreDaysOverdueSensor(SimpleChoresChoreBaseSensor):
+    """Sensor for tracking days overdue."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        chore_id: str,
+        chore_name: str,
+    ) -> None:
+        """Initialize the days overdue sensor."""
+        super().__init__(coordinator, entry, chore_id, chore_name)
+        self._attr_name = "Days overdue"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_days_overdue"
+        self._attr_icon = "mdi:calendar-alert"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = "days"
+
+    @property
+    def native_value(self) -> int:
+        """Return days overdue."""
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        if chore is None:
+            return 0
+        return chore.days_overdue
+
+
+class ChoreNextDueSensor(SimpleChoresChoreBaseSensor):
+    """Sensor for tracking next due date."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        chore_id: str,
+        chore_name: str,
+    ) -> None:
+        """Initialize the next due sensor."""
+        super().__init__(coordinator, entry, chore_id, chore_name)
+        self._attr_name = "Next due"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_next_due"
+        self._attr_icon = "mdi:calendar-clock"
+        self._attr_device_class = SensorDeviceClass.DATE
+
+    @property
+    def native_value(self) -> str | None:
+        """Return next due date."""
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        if chore is None or chore.next_due is None:
+            return None
+        return chore.next_due

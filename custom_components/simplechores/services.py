@@ -10,24 +10,24 @@ from .const import (
     LOGGER,
     SERVICE_UPDATE_POINTS,
     SERVICE_RESET_POINTS,
-    TRACKER_PERIOD_DAILY,
-    TRACKER_PERIOD_WEEKLY,
-    TRACKER_PERIOD_MONTHLY,
-    TRACKER_PERIOD_YEARLY,
+    TRACKER_PERIOD_TODAY,
+    TRACKER_PERIOD_THIS_WEEK,
+    TRACKER_PERIOD_THIS_MONTH,
+    TRACKER_PERIOD_THIS_YEAR,
 )
 
 # Service schemas
 UPDATE_POINTS_SCHEMA = vol.Schema({
     vol.Required("member"): cv.string,
     vol.Required("offset"): vol.Coerce(int),
-    vol.Optional("periods", default=[TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]): 
-        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])]),
+    vol.Optional("periods", default=[TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR]): 
+        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])]),
 })
 
 RESET_POINTS_SCHEMA = vol.Schema({
     vol.Required("member"): cv.string,
-    vol.Optional("periods", default=[TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]): 
-        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])]),
+    vol.Optional("periods", default=[TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR]): 
+        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])]),
 })
 
 
@@ -38,24 +38,24 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle the update_points service call."""
         member_name = call.data["member"]
         offset = call.data["offset"]
-        periods = call.data.get("periods", [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])
+        periods = call.data.get("periods", [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))
         storage = hass.data[DOMAIN][entry_id]["storage"]
         coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
 
-        members = storage.get_members()
-        if member_name not in members:
+        member = storage.get_member(member_name)
+        if member is None:
             LOGGER.error(f"Member '{member_name}' not found")
             return
 
         # Update points for specified periods
-        member_data = members[member_name]
         for period in periods:
-            current_points = member_data.get(f"points_{period}", 0)
-            member_data[f"points_{period}"] = current_points + offset
-
+            current_points = member.get_points(period)
+            member.set_points(period, current_points + offset)
+        
+        storage.update_member(member)
         await storage.async_save()
         await coordinator.async_refresh_data()
 
@@ -66,23 +66,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_reset_points(call: ServiceCall) -> None:
         """Handle the reset_points service call."""
         member_name = call.data["member"]
-        periods = call.data.get("periods", [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY])
+        periods = call.data.get("periods", [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))
         storage = hass.data[DOMAIN][entry_id]["storage"]
         coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
 
-        members = storage.get_members()
-        if member_name not in members:
+        member = storage.get_member(member_name)
+        if member is None:
             LOGGER.error(f"Member '{member_name}' not found")
             return
 
         # Reset points for specified periods
-        member_data = members[member_name]
         for period in periods:
-            member_data[f"points_{period}"] = 0
-
+            member.reset_points(period)
+        
+        storage.update_member(member)
         await storage.async_save()
         await coordinator.async_refresh_data()
 

@@ -10,10 +10,10 @@ from homeassistant.helpers.update_coordinator import (
 from .const import (
     DOMAIN,
     LOGGER,
-    TRACKER_PERIOD_DAILY,
-    TRACKER_PERIOD_WEEKLY,
-    TRACKER_PERIOD_MONTHLY,
-    TRACKER_PERIOD_YEARLY,
+    TRACKER_PERIOD_TODAY,
+    TRACKER_PERIOD_THIS_WEEK,
+    TRACKER_PERIOD_THIS_MONTH,
+    TRACKER_PERIOD_THIS_YEAR,
     DEFAULT_WEEK_START_DAY,
 )
 
@@ -53,29 +53,29 @@ class SimpleChoresCoordinator(DataUpdateCoordinator):
 
         # Check daily reset (midnight)
         if self._should_reset_daily(now):
-            self.storage.reset_period_counters(TRACKER_PERIOD_DAILY)
-            self.storage.set_last_reset(TRACKER_PERIOD_DAILY, now.date().isoformat())
+            self.storage.reset_period_counters(TRACKER_PERIOD_TODAY)
+            self.storage.set_last_reset(TRACKER_PERIOD_TODAY, now.date().isoformat())
             save_needed = True
             LOGGER.debug("Reset daily counters")
 
         # Check weekly reset (start of week)
         if self._should_reset_weekly(now):
-            self.storage.reset_period_counters(TRACKER_PERIOD_WEEKLY)
-            self.storage.set_last_reset(TRACKER_PERIOD_WEEKLY, now.date().isoformat())
+            self.storage.reset_period_counters(TRACKER_PERIOD_THIS_WEEK)
+            self.storage.set_last_reset(TRACKER_PERIOD_THIS_WEEK, now.date().isoformat())
             save_needed = True
             LOGGER.debug("Reset weekly counters")
 
         # Check monthly reset (1st of month)
         if self._should_reset_monthly(now):
-            self.storage.reset_period_counters(TRACKER_PERIOD_MONTHLY)
-            self.storage.set_last_reset(TRACKER_PERIOD_MONTHLY, now.date().isoformat())
+            self.storage.reset_period_counters(TRACKER_PERIOD_THIS_MONTH)
+            self.storage.set_last_reset(TRACKER_PERIOD_THIS_MONTH, now.date().isoformat())
             save_needed = True
             LOGGER.debug("Reset monthly counters")
 
         # Check yearly reset (January 1st)
         if self._should_reset_yearly(now):
-            self.storage.reset_period_counters(TRACKER_PERIOD_YEARLY)
-            self.storage.set_last_reset(TRACKER_PERIOD_YEARLY, now.date().isoformat())
+            self.storage.reset_period_counters(TRACKER_PERIOD_THIS_YEAR)
+            self.storage.set_last_reset(TRACKER_PERIOD_THIS_YEAR, now.date().isoformat())
             save_needed = True
             LOGGER.debug("Reset yearly counters")
 
@@ -84,7 +84,7 @@ class SimpleChoresCoordinator(DataUpdateCoordinator):
 
     def _should_reset_daily(self, now: datetime) -> bool:
         """Check if daily counters should be reset."""
-        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_DAILY)
+        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_TODAY)
         if not last_reset:
             return True  # First run, initialize
         
@@ -93,7 +93,7 @@ class SimpleChoresCoordinator(DataUpdateCoordinator):
 
     def _should_reset_weekly(self, now: datetime) -> bool:
         """Check if weekly counters should be reset."""
-        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_WEEKLY)
+        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_THIS_WEEK)
         if not last_reset:
             return True  # First run, initialize
         
@@ -108,7 +108,7 @@ class SimpleChoresCoordinator(DataUpdateCoordinator):
 
     def _should_reset_monthly(self, now: datetime) -> bool:
         """Check if monthly counters should be reset."""
-        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_MONTHLY)
+        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_THIS_MONTH)
         if not last_reset:
             return True  # First run, initialize
         
@@ -119,7 +119,7 @@ class SimpleChoresCoordinator(DataUpdateCoordinator):
 
     def _should_reset_yearly(self, now: datetime) -> bool:
         """Check if yearly counters should be reset."""
-        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_YEARLY)
+        last_reset = self.storage.get_last_reset(TRACKER_PERIOD_THIS_YEAR)
         if not last_reset:
             return True  # First run, initialize
         

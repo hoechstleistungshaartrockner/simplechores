@@ -110,17 +110,17 @@ SERVICE_UPDATE_POINTS = "update_points"
 SERVICE_RESET_POINTS = "reset_points"
 
 # Chore tracker and point tracker Period Types
-TRACKER_PERIOD_DAILY = "daily"
-TRACKER_PERIOD_WEEKLY = "weekly"
-TRACKER_PERIOD_MONTHLY = "monthly"
-TRACKER_PERIOD_YEARLY = "yearly"
+TRACKER_PERIOD_TODAY = "today"
+TRACKER_PERIOD_THIS_WEEK = "this_week"
+TRACKER_PERIOD_THIS_MONTH = "this_month"
+TRACKER_PERIOD_THIS_YEAR = "this_year"
 
 # Reset Configuration
 CONF_WEEK_START_DAY = "week_start_day"  # 0 = Monday, 6 = Sunday
 DEFAULT_WEEK_START_DAY = 0  # Monday
 
 # Storage Keys for Last Reset Timestamps
-KEY_LAST_RESET_DAILY = "last_reset_daily"
-KEY_LAST_RESET_WEEKLY = "last_reset_weekly"
-KEY_LAST_RESET_MONTHLY = "last_reset_monthly"
-KEY_LAST_RESET_YEARLY = "last_reset_yearly"
+KEY_LAST_RESET_TODAY = "last_reset_today"
+KEY_LAST_RESET_THIS_WEEK = "last_reset_this_week"
+KEY_LAST_RESET_THIS_MONTH = "last_reset_this_month"
+KEY_LAST_RESET_THIS_YEAR = "last_reset_this_year"

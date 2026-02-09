@@ -17,12 +17,13 @@ from .const import (
     CONF_N_MEMBERS,
     DEFAULT_N_MEMBERS,
     CONF_MEMBERS,
-    TRACKER_PERIOD_DAILY,
-    TRACKER_PERIOD_WEEKLY,
-    TRACKER_PERIOD_MONTHLY,
-    TRACKER_PERIOD_YEARLY,
+    TRACKER_PERIOD_TODAY,
+    TRACKER_PERIOD_THIS_WEEK,
+    TRACKER_PERIOD_THIS_MONTH,
+    TRACKER_PERIOD_THIS_YEAR,
     DEVICE_MANUFACTURER, DEVICE_MODEL_MEMBER, DEVICE_SW_VERSION,
 )
+from .member import Member
 
 
 
@@ -57,27 +58,16 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             else:
                 # Get existing members from storage
                 storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
-                members = storage.get_members()
                 
-                if new_member_name in members:
+                if storage.member_exists(new_member_name):
                     errors["member_name"] = "member_exists"
                 else:
-                    # Add new member to storage
-                    
-                    members[new_member_name] = {
-                        f"points_{TRACKER_PERIOD_DAILY}": 0,
-                        f"points_{TRACKER_PERIOD_WEEKLY}": 0,
-                        f"points_{TRACKER_PERIOD_MONTHLY}": 0,
-                        f"points_{TRACKER_PERIOD_YEARLY}": 0,
-                        f"chores_{TRACKER_PERIOD_DAILY}": 0,
-                        f"chores_{TRACKER_PERIOD_WEEKLY}": 0,
-                        f"chores_{TRACKER_PERIOD_MONTHLY}": 0,
-                        f"chores_{TRACKER_PERIOD_YEARLY}": 0,
-                    }
+                    # Create new member
+                    new_member = Member(name=new_member_name)
+                    storage.add_member(new_member)
                     await storage.async_save()
                     
-                    # Create device for new member
-                    
+                    # Create device
                     device_reg = dr.async_get(self.hass)
                     device_reg.async_get_or_create(
                         config_entry_id=self.config_entry.entry_id,
@@ -88,9 +78,8 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                         sw_version=DEVICE_SW_VERSION,
                     )
                     
-                    # Reload the integration to create new entities
+                    # Reload entry to create entities
                     await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                    
                     return self.async_create_entry(title="", data={})
         
         schema = vol.Schema({
@@ -143,23 +132,32 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 errors["new_name"] = "member_exists"
             
             if not errors:
+                # Get the member object
+                member = storage.get_member(self._selected_member)
+                if member is None:
+                    errors["base"] = "member_not_found"
+                    return self.async_show_form(
+                        step_id="update_member_details",
+                        data_schema=schema,
+                        errors=errors,
+                    )
                 
                 # Handle points action
                 if points_action == "offset":
-                    for period in [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]:
-                        member_data[f"points_{period}"] = member_data.get(f"points_{period}", 0) + points_offset
+                    for period in [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR]:
+                        current = member.get_points(period)
+                        member.set_points(period, current + points_offset)
                 elif points_action == "reset":
-                    for period in [TRACKER_PERIOD_DAILY, TRACKER_PERIOD_WEEKLY, TRACKER_PERIOD_MONTHLY, TRACKER_PERIOD_YEARLY]:
-                        member_data[f"points_{period}"] = 0
+                    member.reset_all_points()
                 
                 # Handle name change
                 if new_name != self._selected_member:
-                    # Update storage
-                    members[new_name] = member_data
-                    del members[self._selected_member]
+                    # Update member name in storage
+                    member.name = new_name
+                    storage.delete_member(self._selected_member)
+                    storage.add_member(member)
                     
                     # Update device registry
-                    
                     device_reg = dr.async_get(self.hass)
                     
                     # Remove old device
@@ -179,7 +177,8 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                         sw_version=DEVICE_SW_VERSION,
                     )
                 else:
-                    members[self._selected_member] = member_data
+                    # Just update existing member data
+                    storage.update_member(member)
                 
                 await storage.async_save()
                 
@@ -224,8 +223,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             member_to_delete = user_input.get("member")
             
             # Remove from storage
-            if member_to_delete in members:
-                del members[member_to_delete]
+            if storage.delete_member(member_to_delete):
                 await storage.async_save()
                 
                 # Remove device

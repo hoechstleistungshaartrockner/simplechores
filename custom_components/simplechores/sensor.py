@@ -52,16 +52,16 @@ async def async_setup_entry(
     
     for member_name in member_names:
         # Points tracking sensors
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "daily"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "weekly"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "monthly"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "yearly"))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, "today"))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_week"))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_month"))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_year"))
         
         # Chore completion tracking sensors
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "daily"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "weekly"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "monthly"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "yearly"))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, "today"))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_week"))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_month"))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_year"))
         
         # Status sensors
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
@@ -120,13 +120,13 @@ class MemberPointsSensor(SimpleChoresBaseSensor):
     @property
     def native_value(self) -> int:
         """Return the state of the sensor."""
-        # Get member data from storage
-        members = self.coordinator.storage.data.get("members", {})
-        member_data = members.get(self.member_name, {})
+        # Get member from storage
+        member = self.coordinator.storage.get_member(self.member_name)
+        if member is None:
+            return 0
         
-        # Calculate points based on period
-        points = member_data.get(f"points_{self.period}", 0)
-        return points
+        # Get points for the period
+        return member.get_points(self.period)
 
 
 class MemberChoresSensor(SimpleChoresBaseSensor):
@@ -151,13 +151,13 @@ class MemberChoresSensor(SimpleChoresBaseSensor):
     @property
     def native_value(self) -> int:
         """Return the state of the sensor."""
-        # Get member data from storage
-        members = self.coordinator.storage.data.get("members", {})
-        member_data = members.get(self.member_name, {})
+        # Get member from storage
+        member = self.coordinator.storage.get_member(self.member_name)
+        if member is None:
+            return 0
         
-        # Calculate completed chores based on period
-        chores = member_data.get(f"chores_{self.period}", 0)
-        return chores
+        # Get chores completed for the period
+        return member.get_chores_completed(self.period)
 
 
 class MemberPendingChoresSensor(SimpleChoresBaseSensor):

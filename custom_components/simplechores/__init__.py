@@ -11,16 +11,13 @@ from .const import (
     DOMAIN, 
     CONF_MEMBERS, 
     PLATFORMS,
-    PERIOD_DAILY, 
-    PERIOD_WEEKLY, 
-    PERIOD_MONTHLY, 
-    PERIOD_YEARLY,
     DEVICE_MANUFACTURER, 
     DEVICE_MODEL_MEMBER, 
     DEVICE_SW_VERSION,
     )
 from .storage_manager import SimpleChoresStorageManager
 from .coordinator import SimpleChoresCoordinator
+from .member import Member
 from . import services
 
 async def async_setup(hass: HomeAssistant, config: ConfigType):
@@ -42,16 +39,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         member_names = entry.data.get(CONF_MEMBERS, [])
         
         for member_name in member_names:
-            storage_members[member_name] = {
-                f"points_{PERIOD_DAILY}": 0,
-                f"points_{PERIOD_WEEKLY}": 0,
-                f"points_{PERIOD_MONTHLY}": 0,
-                f"points_{PERIOD_YEARLY}": 0,
-                f"chores_{PERIOD_DAILY}": 0,
-                f"chores_{PERIOD_WEEKLY}": 0,
-                f"chores_{PERIOD_MONTHLY}": 0,
-                f"chores_{PERIOD_YEARLY}": 0,
-            }
+            member = Member(name=member_name)
+            storage.add_member(member)
         
         await storage.async_save()
 

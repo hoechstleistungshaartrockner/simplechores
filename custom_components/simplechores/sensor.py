@@ -83,7 +83,6 @@ async def async_setup_entry(
     
     # Chore sensors
     for chore_id, chore in chores.items():
-        entities.append(ChoreStatusSensor(coordinator, entry, chore_id, chore.name))
         entities.append(ChoreDaysOverdueSensor(coordinator, entry, chore_id, chore.name))
         entities.append(ChoreNextDueSensor(coordinator, entry, chore_id, chore.name))
 
@@ -288,31 +287,6 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
             hw_version=hw_info,
             suggested_area="Chores",
         )
-
-
-class ChoreStatusSensor(SimpleChoresChoreBaseSensor):
-    """Sensor for tracking chore status."""
-
-    def __init__(
-        self,
-        coordinator: SimpleChoresCoordinator,
-        entry: ConfigEntry,
-        chore_id: str,
-        chore_name: str,
-    ) -> None:
-        """Initialize the status sensor."""
-        super().__init__(coordinator, entry, chore_id, chore_name)
-        self._attr_name = "Status"
-        self._attr_unique_id = f"{DOMAIN}_{chore_id}_status"
-        self._attr_icon = "mdi:clipboard-check"
-
-    @property
-    def native_value(self) -> str:
-        """Return the chore status."""
-        chore = self.coordinator.storage.get_chore(self.chore_id)
-        if chore is None:
-            return "unknown"
-        return chore.status
 
 
 class ChoreDaysOverdueSensor(SimpleChoresChoreBaseSensor):

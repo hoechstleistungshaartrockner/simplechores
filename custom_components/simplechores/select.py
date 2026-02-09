@@ -16,6 +16,9 @@ from .const import (
     DEVICE_MODEL_CHORE,
     DEVICE_SW_VERSION,
     LOGGER,
+    CHORE_STATE_PENDING,
+    CHORE_STATE_COMPLETED,
+    CHORE_STATE_OVERDUE,
 )
 from .coordinator import SimpleChoresCoordinator
 
@@ -36,6 +39,7 @@ async def async_setup_entry(
     
     # Create select entities for each chore
     for chore_id, chore in chores.items():
+        entities.append(ChoreStatusSelect(coordinator, entry, chore_id, chore.name))
         entities.append(ChoreAssigneeSelect(coordinator, entry, chore_id, chore.name))
         entities.append(ChoreCompletedBySelect(coordinator, entry, chore_id, chore.name))
 
@@ -229,4 +233,98 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         
         LOGGER.info(
             f"Chore '{self.chore_name}' marked as completed by {option}"
+        )
+
+
+class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
+    """Select entity to change chore status."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        chore_id: str,
+        chore_name: str,
+    ) -> None:
+        """Initialize the select entity."""
+        super().__init__(coordinator)
+        self.chore_id = chore_id
+        self.chore_name = chore_name
+        self._entry = entry
+        self._attr_has_entity_name = True
+        self._attr_name = "Status"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_status"
+        self._attr_icon = "mdi:clipboard-check"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information about this chore."""
+        storage = self.coordinator.storage
+        chore = storage.get_chore(self.chore_id)
+        
+        if chore:
+            hw_info = f"{chore.status.capitalize()}"
+            if chore.assigned_to:
+                hw_info += f" • Assigned to {chore.assigned_to}"
+        else:
+            hw_info = "Unknown"
+        
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"chore_{self.chore_id}")},
+            name=self.chore_name,
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL_CHORE,
+            sw_version=DEVICE_SW_VERSION,
+            hw_version=hw_info,
+            suggested_area="Chores",
+        )
+
+    @property
+    def options(self) -> list[str]:
+        """Return list of available status options."""
+        return [CHORE_STATE_PENDING, CHORE_STATE_COMPLETED, CHORE_STATE_OVERDUE]
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current status."""
+        storage = self.coordinator.storage
+        chore = storage.get_chore(self.chore_id)
+        
+        if chore:
+            return chore.status
+        return None
+
+    async def async_select_option(self, option: str) -> None:
+        """Handle status selection - update chore status."""
+        storage = self.coordinator.storage
+        chore = storage.get_chore(self.chore_id)
+        
+        if chore is None:
+            LOGGER.error(f"Chore {self.chore_id} not found")
+            return
+        
+        # Update chore status based on selection
+        if option == CHORE_STATE_PENDING:
+            chore.mark_pending()
+        elif option == CHORE_STATE_OVERDUE:
+            chore.mark_overdue()
+        elif option == CHORE_STATE_COMPLETED:
+            # When marking as completed manually, use the assigned member if available
+            # Otherwise, don't award points to anyone
+            if chore.assigned_to:
+                chore.mark_completed(chore.assigned_to)
+            else:
+                chore.status = CHORE_STATE_COMPLETED
+                chore.last_completed = date.today().isoformat()
+                chore.days_overdue = 0
+        
+        # Update storage
+        storage.update_chore(self.chore_id, chore)
+        await storage.async_save()
+        
+        # Refresh coordinator to update all entities
+        await self.coordinator.async_request_refresh()
+        
+        LOGGER.info(
+            f"Chore '{self.chore_name}' status updated to {option}"
         )

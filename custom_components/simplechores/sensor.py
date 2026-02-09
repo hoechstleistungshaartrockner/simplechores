@@ -32,6 +32,15 @@ from .const import (
     SENSOR_NAME_PENDING_CHORES,
     SENSOR_NAME_OVERDUE_CHORES,
     UNIT_CHORES,
+    DATA_CHORES,
+    CHORE_FIELD_ASSIGNED_TO,
+    CHORE_FIELD_STATUS,
+    CHORE_STATE_PENDING,
+    CHORE_STATE_OVERDUE,
+    TRACKER_PERIOD_TODAY,
+    TRACKER_PERIOD_THIS_WEEK,
+    TRACKER_PERIOD_THIS_MONTH,
+    TRACKER_PERIOD_THIS_YEAR,
 )
 from .coordinator import SimpleChoresCoordinator
 
@@ -52,16 +61,16 @@ async def async_setup_entry(
     
     for member_name in member_names:
         # Points tracking sensors
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "today"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_week"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_month"))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, "this_year"))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH))
+        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR))
         
         # Chore completion tracking sensors
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "today"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_week"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_month"))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, "this_year"))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH))
+        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR))
         
         # Status sensors
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
@@ -181,13 +190,13 @@ class MemberPendingChoresSensor(SimpleChoresBaseSensor):
     def native_value(self) -> int:
         """Return the number of pending chores."""
         # Get all chores from storage
-        chores = self.coordinator.storage.data.get("chores", {})
+        chores = self.coordinator.storage.data.get(DATA_CHORES, {})
         
         # Count pending chores assigned to this member
         pending_count = 0
         for chore_id, chore_data in chores.items():
-            if chore_data.get("assigned_to") == self.member_name:
-                if chore_data.get("status") == "pending":
+            if chore_data.get(CHORE_FIELD_ASSIGNED_TO) == self.member_name:
+                if chore_data.get(CHORE_FIELD_STATUS) == CHORE_STATE_PENDING:
                     pending_count += 1
         
         return pending_count
@@ -214,13 +223,13 @@ class MemberOverdueChoresSensor(SimpleChoresBaseSensor):
     def native_value(self) -> int:
         """Return the number of overdue chores."""
         # Get all chores from storage
-        chores = self.coordinator.storage.data.get("chores", {})
+        chores = self.coordinator.storage.data.get(DATA_CHORES, {})
         
         # Count overdue chores assigned to this member
         overdue_count = 0
         for chore_id, chore_data in chores.items():
-            if chore_data.get("assigned_to") == self.member_name:
-                if chore_data.get("status") == "overdue":
+            if chore_data.get(CHORE_FIELD_ASSIGNED_TO) == self.member_name:
+                if chore_data.get(CHORE_FIELD_STATUS) == CHORE_STATE_OVERDUE:
                     overdue_count += 1
         
         return overdue_count

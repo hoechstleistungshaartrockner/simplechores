@@ -124,3 +124,27 @@ KEY_LAST_RESET_TODAY = "last_reset_today"
 KEY_LAST_RESET_THIS_WEEK = "last_reset_this_week"
 KEY_LAST_RESET_THIS_MONTH = "last_reset_this_month"
 KEY_LAST_RESET_THIS_YEAR = "last_reset_this_year"
+
+# Member Data Field Keys
+MEMBER_FIELD_NAME = "name"
+MEMBER_FIELD_POINTS_TODAY = "points_earned_today"
+MEMBER_FIELD_POINTS_THIS_WEEK = "points_earned_this_week"
+MEMBER_FIELD_POINTS_THIS_MONTH = "points_earned_this_month"
+MEMBER_FIELD_POINTS_THIS_YEAR = "points_earned_this_year"
+MEMBER_FIELD_CHORES_TODAY = "chores_completed_today"
+MEMBER_FIELD_CHORES_THIS_WEEK = "chores_completed_this_week"
+MEMBER_FIELD_CHORES_THIS_MONTH = "chores_completed_this_month"
+MEMBER_FIELD_CHORES_THIS_YEAR = "chores_completed_this_year"
+MEMBER_FIELD_PENDING_CHORES = "n_chores_pending"
+MEMBER_FIELD_OVERDUE_CHORES = "n_chores_overdue"
+
+# Field name prefixes
+MEMBER_FIELD_PREFIX_POINTS = "points_earned"
+MEMBER_FIELD_PREFIX_CHORES = "chores_completed"
+
+# Last reset field prefix
+STORAGE_KEY_PREFIX_LAST_RESET = "last_reset"
+
+# Chore data field keys
+CHORE_FIELD_ASSIGNED_TO = "assigned_to"
+CHORE_FIELD_STATUS = "status"

@@ -105,6 +105,7 @@ class ChorePointsNumber(CoordinatorEntity, NumberEntity):
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""
         return {
+            "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
         }

@@ -25,6 +25,21 @@ from .const import (
     ASSIGN_MODE_ALWAYS,
     ASSIGN_MODE_ROTATE,
     ASSIGN_MODE_RANDOM,
+    FREQUENCY_NONE,
+    FREQUENCY_DAILY,
+    FREQUENCY_MONTHLY_DAY,
+    FREQUENCY_MONTHLY_WEEKDAY,
+    FREQUENCY_INTERVAL_DAYS,
+    FREQUENCY_AFTER_COMPLETION_DAYS,
+    FREQUENCY_SPECIFIC_DAYS,
+    FREQUENCY_ANNUAL,
+    CONF_RECURRENCE_PATTERN,
+    CONF_RECURRENCE_INTERVAL,
+    CONF_RECURRENCE_DAY_OF_MONTH,
+    CONF_RECURRENCE_WEEK_OF_MONTH,
+    CONF_RECURRENCE_SPECIFIC_WEEKDAYS,
+    CONF_RECURRENCE_ANNUAL_MONTH,
+    CONF_RECURRENCE_ANNUAL_DAY,
 )
 from .member import Member
 from .chore import Chore
@@ -40,6 +55,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         """Initialize options flow."""
         self._selected_member = None
         self._selected_chore = None
+        self._chore_data = {}  # Temporary storage for chore data during flow
 
     async def async_step_init(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Main menu - select between managing members or chores."""
@@ -233,7 +249,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Add a new chore."""
+        """Add a new chore - Step 1: Basic information."""
         errors = {}
         storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
         members = storage.get_members()
@@ -243,43 +259,20 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         
         if user_input is not None:
             chore_name = user_input.get("chore_name", "").strip()
-            points = user_input.get("points", 0)
-            assignment_mode = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
-            assignees = user_input.get("assignees", [])
             
             # Validate chore name
             if not chore_name:
                 errors["chore_name"] = "name_required"
             else:
-                # Create unique ID for chore (slugified name + timestamp)
-                import time
-                chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
-                
-                # Create the chore
-                chore = Chore(
-                    name=chore_name,
-                    points=points,
-                    assignment_mode=assignment_mode,
-                    possible_assignees=assignees if assignees else list(members.keys()),
-                )
-                
-                # Assign initial member if needed
-                if assignment_mode == ASSIGN_MODE_ALWAYS and assignees:
-                    chore.assigned_to = assignees[0]
-                elif assignment_mode == ASSIGN_MODE_ROTATE and assignees:
-                    chore.assigned_to = assignees[0]
-                elif assignment_mode == ASSIGN_MODE_RANDOM and assignees:
-                    import random
-                    chore.assigned_to = random.choice(assignees)
-                
-                # Add to storage
-                storage.add_chore(chore_id, chore)
-                await storage.async_save()
-                
-                # Reload entry to create device and entities for the new chore
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                
-                return self.async_create_entry(title="", data={})
+                # Store basic chore data
+                self._chore_data = {
+                    "chore_name": chore_name,
+                    "points": user_input.get("points", 0),
+                    "assignment_mode": user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS),
+                    "assignees": user_input.get("assignees", list(members.keys())),
+                }
+                # Move to recurrence pattern selection
+                return await self.async_step_add_chore_recurrence()
         
         # Create member list for assignees
         member_list = list(members.keys())
@@ -302,6 +295,208 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             data_schema=schema,
             errors=errors,
         )
+
+    async def async_step_add_chore_recurrence(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 2: Select recurrence pattern."""
+        if user_input is not None:
+            recurrence_pattern = user_input.get(CONF_RECURRENCE_PATTERN, FREQUENCY_DAILY)
+            self._chore_data[CONF_RECURRENCE_PATTERN] = recurrence_pattern
+            
+            # Move to interval configuration if pattern requires it
+            if recurrence_pattern in [FREQUENCY_INTERVAL_DAYS, FREQUENCY_AFTER_COMPLETION_DAYS]:
+                return await self.async_step_add_chore_interval()
+            elif recurrence_pattern == FREQUENCY_MONTHLY_DAY:
+                return await self.async_step_add_chore_monthly_day()
+            elif recurrence_pattern == FREQUENCY_MONTHLY_WEEKDAY:
+                return await self.async_step_add_chore_monthly_weekday()
+            elif recurrence_pattern == FREQUENCY_SPECIFIC_DAYS:
+                return await self.async_step_add_chore_specific_days()
+            elif recurrence_pattern == FREQUENCY_ANNUAL:
+                return await self.async_step_add_chore_annual()
+            else:
+                # For daily or none, finalize the chore
+                return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_PATTERN, default=FREQUENCY_DAILY): vol.In({
+                FREQUENCY_NONE: "No recurrence",
+                FREQUENCY_DAILY: "Daily",
+                FREQUENCY_INTERVAL_DAYS: "Every X days",
+                FREQUENCY_AFTER_COMPLETION_DAYS: "X days after completion",
+                FREQUENCY_SPECIFIC_DAYS: "Specific weekdays",
+                FREQUENCY_MONTHLY_DAY: "Monthly (specific day)",
+                FREQUENCY_MONTHLY_WEEKDAY: "Monthly (specific weekday)",
+                FREQUENCY_ANNUAL: "Annually",
+            }),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_recurrence",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_interval(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 3a: Configure interval for interval-based recurrence."""
+        if user_input is not None:
+            self._chore_data[CONF_RECURRENCE_INTERVAL] = user_input.get(CONF_RECURRENCE_INTERVAL, 1)
+            return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_INTERVAL, default=1): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=365)
+            ),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_interval",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_monthly_day(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 3b: Configure monthly recurrence by day."""
+        if user_input is not None:
+            self._chore_data[CONF_RECURRENCE_DAY_OF_MONTH] = user_input.get(CONF_RECURRENCE_DAY_OF_MONTH, 1)
+            return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_DAY_OF_MONTH, default=1): vol.All(
+                vol.Coerce(int), vol.Range(min=-1, max=31)
+            ),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_monthly_day",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_monthly_weekday(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 3c: Configure monthly recurrence by weekday."""
+        if user_input is not None:
+            self._chore_data[CONF_RECURRENCE_WEEK_OF_MONTH] = user_input.get(CONF_RECURRENCE_WEEK_OF_MONTH, 1)
+            self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = [user_input.get("weekday", 0)]
+            return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_WEEK_OF_MONTH, default=1): vol.In({
+                1: "First",
+                2: "Second",
+                3: "Third",
+                4: "Fourth",
+                -1: "Last",
+            }),
+            vol.Required("weekday", default=0): vol.In({
+                0: "Monday",
+                1: "Tuesday",
+                2: "Wednesday",
+                3: "Thursday",
+                4: "Friday",
+                5: "Saturday",
+                6: "Sunday",
+            }),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_monthly_weekday",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_specific_days(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 3d: Configure specific weekdays."""
+        if user_input is not None:
+            self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = user_input.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, [0])
+            return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, default=[0]): cv.multi_select({
+                0: "Monday",
+                1: "Tuesday",
+                2: "Wednesday",
+                3: "Thursday",
+                4: "Friday",
+                5: "Saturday",
+                6: "Sunday",
+            }),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_specific_days",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_annual(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 3e: Configure annual recurrence."""
+        if user_input is not None:
+            self._chore_data[CONF_RECURRENCE_ANNUAL_MONTH] = user_input.get(CONF_RECURRENCE_ANNUAL_MONTH, 1)
+            self._chore_data[CONF_RECURRENCE_ANNUAL_DAY] = user_input.get(CONF_RECURRENCE_ANNUAL_DAY, 1)
+            return await self.async_step_add_chore_finalize()
+        
+        schema = vol.Schema({
+            vol.Required(CONF_RECURRENCE_ANNUAL_MONTH, default=1): vol.In({
+                1: "January", 2: "February", 3: "March", 4: "April",
+                5: "May", 6: "June", 7: "July", 8: "August",
+                9: "September", 10: "October", 11: "November", 12: "December",
+            }),
+            vol.Required(CONF_RECURRENCE_ANNUAL_DAY, default=1): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=31)
+            ),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore_annual",
+            data_schema=schema,
+        )
+
+    async def async_step_add_chore_finalize(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Finalize chore creation with all collected data."""
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        members = storage.get_members()
+        
+        # Create unique ID for chore (slugified name + timestamp)
+        import time
+        chore_name = self._chore_data["chore_name"]
+        chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
+        
+        # Create the chore with all collected data
+        chore = Chore(
+            name=chore_name,
+            points=self._chore_data.get("points", 0),
+            assignment_mode=self._chore_data.get("assignment_mode", ASSIGN_MODE_ALWAYS),
+            possible_assignees=self._chore_data.get("assignees", list(members.keys())),
+            recurrence_pattern=self._chore_data.get(CONF_RECURRENCE_PATTERN, FREQUENCY_DAILY),
+            recurrence_interval=self._chore_data.get(CONF_RECURRENCE_INTERVAL, 1),
+            recurrence_day_of_month=self._chore_data.get(CONF_RECURRENCE_DAY_OF_MONTH),
+            recurrence_week_of_month=self._chore_data.get(CONF_RECURRENCE_WEEK_OF_MONTH),
+            recurrence_specific_weekdays=self._chore_data.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, []),
+            recurrence_annual_month=self._chore_data.get(CONF_RECURRENCE_ANNUAL_MONTH),
+            recurrence_annual_day=self._chore_data.get(CONF_RECURRENCE_ANNUAL_DAY),
+        )
+        
+        # Assign initial member if needed
+        assignees = self._chore_data.get("assignees", [])
+        assignment_mode = self._chore_data.get("assignment_mode", ASSIGN_MODE_ALWAYS)
+        if assignment_mode == ASSIGN_MODE_ALWAYS and assignees:
+            chore.assigned_to = assignees[0]
+        elif assignment_mode == ASSIGN_MODE_ROTATE and assignees:
+            chore.assigned_to = assignees[0]
+        elif assignment_mode == ASSIGN_MODE_RANDOM and assignees:
+            import random
+            chore.assigned_to = random.choice(assignees)
+        
+        # Set the first due date to today
+        from datetime import date
+        chore.next_due = date.today().isoformat()
+        
+        # Add to storage
+        storage.add_chore(chore_id, chore)
+        await storage.async_save()
+        
+        # Clear temporary data
+        self._chore_data = {}
+        
+        # Reload entry to create device and entities for the new chore
+        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+        
+        return self.async_create_entry(title="", data={})
 
     async def async_step_edit_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Select a chore to edit."""

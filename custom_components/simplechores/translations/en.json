@@ -154,6 +154,67 @@
           "assignees": "Select which members can be assigned this chore"
         }
       },
+      "add_chore_recurrence": {
+        "title": "Chore Recurrence Pattern",
+        "description": "How often should this chore recur?",
+        "data": {
+          "recurrence_pattern": "Recurrence pattern"
+        }
+      },
+      "add_chore_interval": {
+        "title": "Recurrence Interval",
+        "description": "Configure the interval for this chore's recurrence.",
+        "data": {
+          "recurrence_interval": "Number of days"
+        },
+        "data_description": {
+          "recurrence_interval": "Chore will recur every X days"
+        }
+      },
+      "add_chore_monthly_day": {
+        "title": "Monthly Recurrence - Day",
+        "description": "On which day of the month should this chore recur?",
+        "data": {
+          "recurrence_day_of_month": "Day of month"
+        },
+        "data_description": {
+          "recurrence_day_of_month": "Day number (1-31, or -1 for last day of month)"
+        }
+      },
+      "add_chore_monthly_weekday": {
+        "title": "Monthly Recurrence - Weekday",
+        "description": "On which week and weekday should this chore recur?",
+        "data": {
+          "recurrence_week_of_month": "Week of month",
+          "weekday": "Weekday"
+        },
+        "data_description": {
+          "recurrence_week_of_month": "Which week (first, second, third, fourth, or last)",
+          "weekday": "Which day of the week"
+        }
+      },
+      "add_chore_specific_days": {
+        "title": "Specific Weekdays",
+        "description": "On which days of the week should this chore recur?",
+        "data": {
+          "recurrence_specific_weekdays": "Weekdays"
+        },
+        "data_description": {
+          "recurrence_specific_weekdays": "Select one or more days of the week"
+        }
+      },
+      "add_chore_annual": {
+        "title": "Annual Recurrence",
+        "description": "On which date should this chore recur annually?",
+        "data": {
+          "recurrence_annual_month": "Month",
+          "recurrence_annual_day": "Day"
+        },
+        "data_description": {
+          "recurrence_annual_month": "Which month",
+          "recurrence_annual_day": "Which day of the month (1-31)"
+        }
+      },
       "edit_chore": {
         "title": "Edit Chore",
         "description": "Select a chore to edit.",

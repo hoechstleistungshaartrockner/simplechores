@@ -1,7 +1,7 @@
 """Sensor platform for SimpleChores."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -80,6 +80,7 @@ async def async_setup_entry(
         # Status sensors
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
         entities.append(MemberOverdueChoresSensor(coordinator, entry, member_name))
+        entities.append(MemberAssignedChoreEntitiesSensor(coordinator, entry, member_name))
     
     # Chore sensors
     for chore_id, chore in chores.items():
@@ -114,6 +115,13 @@ class SimpleChoresBaseSensor(CoordinatorEntity, SensorEntity):
             model=DEVICE_MODEL_MEMBER,
             sw_version=DEVICE_SW_VERSION,
         )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        return {
+            "integration": DOMAIN,
+        }
 
 
 class MemberPointsSensor(SimpleChoresBaseSensor):
@@ -245,6 +253,49 @@ class MemberOverdueChoresSensor(SimpleChoresBaseSensor):
         return overdue_count
 
 
+class MemberAssignedChoreEntitiesSensor(SimpleChoresBaseSensor):
+    """Sensor that lists entity IDs of status selects for chores assigned to a member."""
+
+    def __init__(
+        self,
+        coordinator: SimpleChoresCoordinator,
+        entry: ConfigEntry,
+        member_name: str,
+    ) -> None:
+        """Initialize the assigned chore entities sensor."""
+        super().__init__(coordinator, entry, member_name)
+        self._attr_name = "Assigned chore entities"
+        self._attr_unique_id = f"{DOMAIN}_{member_name}_assigned_chore_entities"
+        self._attr_icon = "mdi:format-list-bulleted"
+
+    @property
+    def native_value(self) -> int:
+        """Return the count of assigned chores."""
+        chores = self.coordinator.storage.get_chores()
+        assigned_count = sum(
+            1 for chore in chores.values() 
+            if chore.assigned_to == self.member_name
+        )
+        return assigned_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes including list of entity IDs."""
+        chores = self.coordinator.storage.get_chores()
+        
+        # Get list of status entity IDs for chores assigned to this member
+        entity_ids = [
+            f"select.{chore_id}_status"
+            for chore_id, chore in chores.items()
+            if chore.assigned_to == self.member_name
+        ]
+        
+        return {
+            "integration": DOMAIN,
+            "entity_ids": entity_ids,
+        }
+
+
 # === Chore Sensors ===
 
 
@@ -292,6 +343,7 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""
         return {
+            "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
         }
@@ -323,6 +375,19 @@ class ChoreDaysOverdueSensor(SimpleChoresChoreBaseSensor):
             return 0
         return chore.days_overdue
 
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        if chore:
+            attrs.update({
+                "status": chore.status,
+                "next_due": chore.next_due,
+                "assigned_to": chore.assigned_to,
+            })
+        return attrs
+
 
 class ChoreNextDueSensor(SimpleChoresChoreBaseSensor):
     """Sensor for tracking next due date."""
@@ -342,9 +407,38 @@ class ChoreNextDueSensor(SimpleChoresChoreBaseSensor):
         self._attr_device_class = SensorDeviceClass.DATE
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> date | None:
         """Return next due date."""
         chore = self.coordinator.storage.get_chore(self.chore_id)
         if chore is None or chore.next_due is None:
             return None
-        return chore.next_due
+        
+        # Convert ISO string to date object
+        try:
+            return date.fromisoformat(chore.next_due)
+        except (ValueError, TypeError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return extra state attributes."""
+        attrs = super().extra_state_attributes
+        chore = self.coordinator.storage.get_chore(self.chore_id)
+        if chore:
+            # Calculate days until due
+            due_in_days = None
+            if chore.next_due:
+                try:
+                    next_due_date = date.fromisoformat(chore.next_due)
+                    today = date.today()
+                    due_in_days = (next_due_date - today).days
+                except (ValueError, TypeError):
+                    pass
+            
+            attrs.update({
+                "recurrence_pattern": chore.recurrence_pattern,
+                "recurrence_interval": chore.recurrence_interval,
+                "last_completed": chore.last_completed,
+                "due_in_days": due_in_days,
+            })
+        return attrs

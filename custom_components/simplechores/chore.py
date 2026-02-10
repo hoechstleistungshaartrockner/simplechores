@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict, field
 from typing import Dict, List
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import random
 
 from .const import (
@@ -13,6 +13,14 @@ from .const import (
     ASSIGN_MODE_ALWAYS,
     ASSIGN_MODE_ROTATE,
     ASSIGN_MODE_RANDOM,
+    FREQUENCY_NONE,
+    FREQUENCY_DAILY,
+    FREQUENCY_MONTHLY_DAY,
+    FREQUENCY_MONTHLY_WEEKDAY,
+    FREQUENCY_INTERVAL_DAYS,
+    FREQUENCY_AFTER_COMPLETION_DAYS,
+    FREQUENCY_SPECIFIC_DAYS,
+    FREQUENCY_ANNUAL,
 )
 
 
@@ -29,6 +37,13 @@ class Chore:
     assignment_mode: str = ASSIGN_MODE_ALWAYS  # always, rotate, random
     assigned_to: str | None = None  # Current assignee member
     possible_assignees: List[str] = field(default_factory=list)  # List of members who can be assigned
+    recurrence_pattern: str = FREQUENCY_DAILY
+    recurrence_interval: int = 1 # e.g., every 1 day, every 2 days, etc.
+    recurrence_day_of_month: int | None = None # for monthly recurrence on a specific day of the month (1-31, -1 for last day)
+    recurrence_week_of_month: int | None = None # e.g. last wednesday of the month would be week_of_month=-1 and specific_weekday=2 (0=Monday, 1=Tuesday, etc.)
+    recurrence_specific_weekdays: List[int] = field(default_factory=list) # for recurrence on specific weekdays (0=Monday, 1=Tuesday, etc.)
+    recurrence_annual_month: int | None = None # for annual recurrence on a specific month (1-12)
+    recurrence_annual_day: int | None = None # for annual recurrence on a specific day (1-365, -1 for last day of the year)
     
     def to_dict(self) -> Dict:
         """Convert the Chore dataclass to a dictionary."""
@@ -47,6 +62,13 @@ class Chore:
             assignment_mode=data.get("assignment_mode", ASSIGN_MODE_ALWAYS),
             assigned_to=data.get("assigned_to"),
             possible_assignees=data.get("possible_assignees", []),
+            recurrence_pattern=data.get("recurrence_pattern", FREQUENCY_DAILY),
+            recurrence_interval=data.get("recurrence_interval", 1),
+            recurrence_day_of_month=data.get("recurrence_day_of_month"),
+            recurrence_week_of_month=data.get("recurrence_week_of_month"),
+            recurrence_specific_weekdays=data.get("recurrence_specific_weekdays", []),
+            recurrence_annual_month=data.get("recurrence_annual_month"),
+            recurrence_annual_day=data.get("recurrence_annual_day"),
         )
     
     def mark_completed(self, member_name: str, storage=None, completion_date: date | None = None) -> None:
@@ -60,9 +82,16 @@ class Chore:
         if completion_date is None:
             completion_date = date.today()
         
-        self.status = CHORE_STATE_COMPLETED
         self.last_completed = completion_date.isoformat()
         self.days_overdue = 0
+        
+        # Calculate and set next due date
+        self.schedule_next_due(completion_date)
+        
+        # After scheduling, set status to completed (will be updated to pending/overdue by coordinator on the next due date)
+        self.status = CHORE_STATE_COMPLETED
+        
+        # Assign to next member
         self.assign()
         
         # Update member points and counters if storage is provided
@@ -80,7 +109,10 @@ class Chore:
                 storage.update_member(member)
         
     def assign(self) -> None:
-        """Assign the chore to a member based on the assignment mode."""
+        """Assign the chore to a member based on the assignment mode.
+        
+        This is called after a chore is completed to determine who should do it next.
+        """
         if self.assignment_mode == ASSIGN_MODE_ALWAYS:
             # Keep the same assignee
             return
@@ -147,3 +179,191 @@ class Chore:
         elif self.status == CHORE_STATE_OVERDUE:
             # Was overdue but isn't anymore
             self.mark_pending()
+
+    def schedule_next_due(self, from_date: date | None = None) -> None:
+        """Calculate and set the next due date based on the recurrence pattern.
+        
+        Args:
+            from_date: Date to calculate from (defaults to today)
+        """
+        if from_date is None:
+            from_date = date.today()
+        
+        if self.recurrence_pattern == FREQUENCY_NONE:
+            # No recurrence, leave next_due as None
+            self.next_due = None
+        elif self.recurrence_pattern == FREQUENCY_DAILY:
+            self._schedule_daily(from_date)
+        elif self.recurrence_pattern == FREQUENCY_INTERVAL_DAYS:
+            self._schedule_interval_days(from_date)
+        elif self.recurrence_pattern == FREQUENCY_AFTER_COMPLETION_DAYS:
+            self._schedule_after_completion_days(from_date)
+        elif self.recurrence_pattern == FREQUENCY_SPECIFIC_DAYS:
+            self._schedule_specific_days(from_date)
+        elif self.recurrence_pattern == FREQUENCY_MONTHLY_DAY:
+            self._schedule_monthly_day(from_date)
+        elif self.recurrence_pattern == FREQUENCY_MONTHLY_WEEKDAY:
+            self._schedule_monthly_weekday(from_date)
+        elif self.recurrence_pattern == FREQUENCY_ANNUAL:
+            self._schedule_annual(from_date)
+        else:
+            # Unknown pattern, default to daily
+            self._schedule_daily(from_date)
+    
+    def _schedule_daily(self, from_date: date) -> None:
+        """Schedule next due date for daily recurrence."""
+        next_due_date = from_date + timedelta(days=1)
+        self.next_due = next_due_date.isoformat()
+    
+    def _schedule_interval_days(self, from_date: date) -> None:
+        """Schedule next due date based on interval from the last due date."""
+        # Use last_completed or current next_due as base, or from_date if neither exists
+        if self.last_completed:
+            base_date = date.fromisoformat(self.last_completed)
+        elif self.next_due:
+            try:
+                base_date = date.fromisoformat(self.next_due)
+            except (ValueError, TypeError):
+                base_date = from_date
+        else:
+            base_date = from_date
+        
+        next_due_date = base_date + timedelta(days=self.recurrence_interval)
+        self.next_due = next_due_date.isoformat()
+    
+    def _schedule_after_completion_days(self, from_date: date) -> None:
+        """Schedule next due date X days after completion."""
+        next_due_date = from_date + timedelta(days=self.recurrence_interval)
+        self.next_due = next_due_date.isoformat()
+    
+    def _schedule_specific_days(self, from_date: date) -> None:
+        """Schedule next due date on specific weekdays."""
+        if not self.recurrence_specific_weekdays:
+            # No weekdays specified, default to tomorrow
+            self.next_due = (from_date + timedelta(days=1)).isoformat()
+            return
+        
+        # Find the next occurrence of any specified weekday
+        current_weekday = from_date.weekday()
+        days_ahead = None
+        
+        # Check next 7 days to find the nearest matching weekday
+        for i in range(1, 8):
+            check_date = from_date + timedelta(days=i)
+            if check_date.weekday() in self.recurrence_specific_weekdays:
+                days_ahead = i
+                break
+        
+        if days_ahead is not None:
+            next_due_date = from_date + timedelta(days=days_ahead)
+            self.next_due = next_due_date.isoformat()
+        else:
+            # Fallback: just use tomorrow
+            self.next_due = (from_date + timedelta(days=1)).isoformat()
+    
+    def _schedule_monthly_day(self, from_date: date) -> None:
+        """Schedule next due date on a specific day of the month."""
+        if self.recurrence_day_of_month is None:
+            self.next_due = (from_date + timedelta(days=30)).isoformat()
+            return
+        
+        # Start with next month
+        if from_date.month == 12:
+            next_month = 1
+            next_year = from_date.year + 1
+        else:
+            next_month = from_date.month + 1
+            next_year = from_date.year
+        
+        # Handle -1 for last day of month
+        if self.recurrence_day_of_month == -1:
+            # Get last day of next month
+            if next_month == 12:
+                last_day_next_month = date(next_year, next_month, 31)
+            else:
+                # Get first day of month after next, then subtract 1 day
+                first_of_following_month = date(next_year, next_month + 1, 1) if next_month < 12 else date(next_year + 1, 1, 1)
+                last_day_next_month = first_of_following_month - timedelta(days=1)
+            next_due_date = last_day_next_month
+        else:
+            # Try to create date with specified day
+            try:
+                next_due_date = date(next_year, next_month, self.recurrence_day_of_month)
+            except ValueError:
+                # Day doesn't exist in this month (e.g., Feb 30), use last day of month
+                if next_month == 12:
+                    first_of_following_month = date(next_year + 1, 1, 1)
+                else:
+                    first_of_following_month = date(next_year, next_month + 1, 1)
+                next_due_date = first_of_following_month - timedelta(days=1)
+        
+        self.next_due = next_due_date.isoformat()
+    
+    def _schedule_monthly_weekday(self, from_date: date) -> None:
+        """Schedule next due date on a specific weekday of a specific week in the month."""
+        if self.recurrence_week_of_month is None or not self.recurrence_specific_weekdays:
+            self.next_due = (from_date + timedelta(days=30)).isoformat()
+            return
+        
+        target_weekday = self.recurrence_specific_weekdays[0]  # Use first weekday in list
+        week_of_month = self.recurrence_week_of_month
+        
+        # Start with next month
+        if from_date.month == 12:
+            next_month = 1
+            next_year = from_date.year + 1
+        else:
+            next_month = from_date.month + 1
+            next_year = from_date.year
+        
+        # Find the target weekday occurrence in next month
+        first_of_month = date(next_year, next_month, 1)
+        first_weekday = first_of_month.weekday()
+        
+        # Calculate days until target weekday
+        days_until_target = (target_weekday - first_weekday) % 7
+        first_occurrence = first_of_month + timedelta(days=days_until_target)
+        
+        if week_of_month == -1:
+            # Last occurrence - find all occurrences and pick the last
+            current_occurrence = first_occurrence
+            last_occurrence = first_occurrence
+            
+            while True:
+                next_occurrence = current_occurrence + timedelta(weeks=1)
+                if next_occurrence.month != next_month:
+                    break
+                last_occurrence = next_occurrence
+                current_occurrence = next_occurrence
+            
+            next_due_date = last_occurrence
+        else:
+            # Specific week (1-4)
+            next_due_date = first_occurrence + timedelta(weeks=week_of_month - 1)
+        
+        self.next_due = next_due_date.isoformat()
+    
+    def _schedule_annual(self, from_date: date) -> None:
+        """Schedule next due date annually on a specific date."""
+        if self.recurrence_annual_month is None or self.recurrence_annual_day is None:
+            self.next_due = (from_date + timedelta(days=365)).isoformat()
+            return
+        
+        # Try next occurrence this year
+        try:
+            next_due_date = date(from_date.year, self.recurrence_annual_month, self.recurrence_annual_day)
+            if next_due_date <= from_date:
+                # Already passed this year, use next year
+                next_due_date = date(from_date.year + 1, self.recurrence_annual_month, self.recurrence_annual_day)
+        except ValueError:
+            # Invalid date (e.g., Feb 30), default to next year same day
+            next_due_date = from_date.replace(year=from_date.year + 1)
+        
+        self.next_due = next_due_date.isoformat()
+    
+    
+        
+        
+        
+        
+        

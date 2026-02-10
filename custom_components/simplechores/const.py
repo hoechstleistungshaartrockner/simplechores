@@ -58,9 +58,8 @@ DEFAULT_RESET_POINTS = False
 # Recurrence Intervals
 CONF_RECURRENCE_PATTERN = "recurrence_pattern"
 CONF_RECURRENCE_INTERVAL = "recurrence_interval"
-CONF_RECURRENCE_DAY_OF_MONTH = "recurrence_day_of_month"
+CONF_RECURRENCE_DAY_OF_MONTH = "recurrence_day_of_month" # always on the same day of the month (1-31,-1 for last day)
 CONF_RECURRENCE_WEEK_OF_MONTH = "recurrence_week_of_month"  # 1-4 or -1 for last
-CONF_RECURRENCE_DAY_OF_WEEK = "recurrence_day_of_week"  # 0-6 (Monday-Sunday)
 CONF_RECURRENCE_SPECIFIC_WEEKDAYS = "recurrence_specific_weekdays"  # List of days
 CONF_RECURRENCE_ANNUAL_MONTH = "recurrence_annual_month"
 CONF_RECURRENCE_ANNUAL_DAY = "recurrence_annual_day"
@@ -73,7 +72,7 @@ FREQUENCY_MONTHLY_WEEKDAY = "monthly_weekday"
 FREQUENCY_INTERVAL_DAYS = "interval_days"
 FREQUENCY_AFTER_COMPLETION_DAYS = "after_completion_days"
 FREQUENCY_SPECIFIC_DAYS = "specific_days"
-FREQUENCY_ANNUAL = "annual"
+FREQUENCY_ANNUAL = "annual_day"
 DEFAULT_RECURRENCE_PATTERN = FREQUENCY_DAILY
 
 # Assignment Modes 

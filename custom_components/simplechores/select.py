@@ -66,6 +66,17 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_assignee"
         self._attr_icon = "mdi:account-arrow-right"
 
+    def _get_related_entity_ids(self) -> dict[str, str]:
+        """Get all related entity IDs for this chore."""
+        return {
+            "status": f"select.{self.chore_id}_status",
+            "assigned_to": f"select.{self.chore_id}_assignee",
+            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "points": f"number.{self.chore_id}_points",
+            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
+            "next_due": f"sensor.{self.chore_id}_next_due",
+        }
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this chore."""
@@ -110,6 +121,7 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
+            "related_entities": self._get_related_entity_ids(),
         }
 
     @property
@@ -172,6 +184,17 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_completed_by"
         self._attr_icon = "mdi:account-check"
 
+    def _get_related_entity_ids(self) -> dict[str, str]:
+        """Get all related entity IDs for this chore."""
+        return {
+            "status": f"select.{self.chore_id}_status",
+            "assigned_to": f"select.{self.chore_id}_assignee",
+            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "points": f"number.{self.chore_id}_points",
+            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
+            "next_due": f"sensor.{self.chore_id}_next_due",
+        }
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this chore."""
@@ -210,6 +233,7 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
+            "related_entities": self._get_related_entity_ids(),
         }
 
     @property
@@ -266,6 +290,17 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_status"
         self._attr_icon = "mdi:clipboard-check"
 
+    def _get_related_entity_ids(self) -> dict[str, str]:
+        """Get all related entity IDs for this chore."""
+        return {
+            "status": f"select.{self.chore_id}_status",
+            "assigned_to": f"select.{self.chore_id}_assignee",
+            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "points": f"number.{self.chore_id}_points",
+            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
+            "next_due": f"sensor.{self.chore_id}_next_due",
+        }
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this chore."""
@@ -297,11 +332,35 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
     @property
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""
-        return {
+        storage = self.coordinator.storage
+        chore = storage.get_chore(self.chore_id)
+        
+        attrs = {
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
+            "related_entities": self._get_related_entity_ids(),
         }
+        
+        if chore:
+            # Add assigned_to attribute
+            if chore.assigned_to:
+                attrs["assigned_to"] = chore.assigned_to
+            
+            # Add next_due attribute
+            if chore.next_due:
+                attrs["next_due"] = chore.next_due
+                
+                # Calculate and add due_in_days
+                try:
+                    next_due_date = date.fromisoformat(chore.next_due)
+                    today = date.today()
+                    due_in_days = (next_due_date - today).days
+                    attrs["due_in_days"] = due_in_days
+                except (ValueError, TypeError):
+                    pass
+        
+        return attrs
 
     @property
     def current_option(self) -> str | None:

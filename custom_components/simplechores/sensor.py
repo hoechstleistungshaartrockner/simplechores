@@ -339,6 +339,17 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
             suggested_area="Chores",
         )
 
+    def _get_related_entity_ids(self) -> dict[str, str]:
+        """Get all related entity IDs for this chore."""
+        return {
+            "status": f"select.{self.chore_id}_status",
+            "assigned_to": f"select.{self.chore_id}_assignee",
+            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "points": f"number.{self.chore_id}_points",
+            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
+            "next_due": f"sensor.{self.chore_id}_next_due",
+        }
+    
     @property
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""
@@ -346,6 +357,7 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
+            "related_entities": self._get_related_entity_ids(),
         }
 
 

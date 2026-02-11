@@ -297,6 +297,27 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                     storage.delete_member(self._selected_member)
                     storage.add_member(member)
                     
+                    # Update all chores that reference this member
+                    chores = storage.get_chores()
+                    for chore_id, chore in chores.items():
+                        modified = False
+                        
+                        # Update assigned_to if it's the renamed member
+                        if chore.assigned_to == self._selected_member:
+                            chore.assigned_to = new_name
+                            modified = True
+                        
+                        # Update possible_assignees if it contains the renamed member
+                        if self._selected_member in chore.possible_assignees:
+                            chore.possible_assignees = [
+                                new_name if assignee == self._selected_member else assignee
+                                for assignee in chore.possible_assignees
+                            ]
+                            modified = True
+                        
+                        if modified:
+                            storage.update_chore(chore_id, chore)
+                    
                     # Update device registry
                     device_reg = dr.async_get(self.hass)
                     

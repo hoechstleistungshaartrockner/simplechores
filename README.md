@@ -1,67 +1,46 @@
 
-## Front-End
-Here's an example of how you can use `decluttering-card`, `auto-entities`, `button-card`, and `bubble-card` to create a dynamic chore dashboard in Home Assistant's Lovelace UI. 
+# Home Assistant Simple Chores
+A Home Assistant integration to manage and track household chores. It allows you to create chores, assign them to family members, set due dates.
 
-### Related Entities Attribute
-All chore entities now include a `related_entities` attribute containing the entity IDs of all related entities for that chore. This makes it easier to reference other entities without manually constructing entity IDs.
+>[!WARNING]
+> This integration is still in development and may have bugs or incomplete features. Use with caution and report any issues you encounter.
 
-**Available in the `related_entities` attribute:**
-- `status` - The status select entity (e.g., `select.kitchen_cleanup_status`)
-- `assigned_to` - The assignee select entity (e.g., `select.kitchen_cleanup_assignee`)
-- `mark_completed_by` - The completion select entity (e.g., `select.kitchen_cleanup_completed_by`)
-- `points` - The points number entity (e.g., `number.kitchen_cleanup_points`)
-- `days_overdue` - The days overdue sensor (e.g., `sensor.kitchen_cleanup_days_overdue`)
-- `next_due` - The next due date sensor (e.g., `sensor.kitchen_cleanup_next_due`)
+## Features
+- Create and manage chores with due dates, custom recurrency and assigned members.
+- Track chore completion status (pending, completed, overdue).
+- Assign Points to chores to balance workload among family members.
+- Flexible dashboard configuration using decluttering-card and auto-entities card.
 
-**Additional Attributes:**
-- The `_status` select entity also includes the following attributes for convenient access:
-  - `assigned_to` - The name of the currently assigned member
-  - `next_due` - The next due date (ISO format string, e.g., "2026-02-15")
-  - `due_in_days` - Number of days until the chore is due (negative if overdue)
-  
-  These attributes are automatically updated whenever the chore data changes.
+## Support Development
+If you find this integration useful and want to support its development, please consider fueling me with a coffee! Your support helps me dedicate more time to improving the integration and adding new features. Thank you!
+<a href="https://www.buymeacoffee.com/haartrockner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-yellow.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
-**Example usage in templates:**
-```yaml
-# Access related entities from any chore entity
-{{ state_attr('select.kitchen_cleanup_status', 'related_entities').days_overdue }}
-# Returns: 'sensor.kitchen_cleanup_days_overdue'
 
-# Get the assigned member directly from the status entity
-{{ state_attr('select.kitchen_cleanup_status', 'assigned_to') }}
-# Returns: 'John' (or the member's name)
+## Installation
 
-# Get the next due date and days until due
-{{ state_attr('select.kitchen_cleanup_status', 'next_due') }}
-# Returns: '2026-02-15'
+### via HACS
+1. Open Home Assistant and go to HACS.
+2. Click the three-dot menu in the top right.
+3. Select "Custom repositories".
+4. In the "Repository" field, paste the URL of this repository (https://github.com/hoechstleistungshaartrockner/simplechores).
+5. For "Category", select "Integration".
+6. Click "Add".
+7. Now go to the "Integrations" section in HACS, search for "Simple Chores", and click "Install".
 
-{{ state_attr('select.kitchen_cleanup_status', 'due_in_days') }}
-# Returns: 5 (or negative if overdue)
 
-# Use in automation
-service: select.select_option
-target:
-  entity_id: "{{ state_attr('sensor.kitchen_cleanup_next_due', 'related_entities').mark_completed_by }}"
-data:
-  option: "John"
-```
 
-**Example in button-card JavaScript:**
-```javascript
-// Instead of manually constructing entity IDs:
-const base = entity.entity_id.replace(/(sensor\.|select\.)/, '').replace('_status', '');
-const overdueId = `sensor.${base}_days_overdue`;
+### Example Dashboard Configuration
 
-// You can now use:
-const overdueId = entity.attributes.related_entities.days_overdue;
+This code snippet demonstrates how to create a chore dashboard using the decluttering-card and auto-entities card. It organizes chores into sections based on their state (overdue, pending, completed) and allows users to toggle chore states directly from the dashboard.
+**You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable.
 
-// Access chore data directly from the status entity:
-const assignedMember = entity.attributes.assigned_to;  // Returns: 'John'
-const nextDue = entity.attributes.next_due;            // Returns: '2026-02-15'
-const dueInDays = entity.attributes.due_in_days;       // Returns: 5 (or negative if overdue)
-```
+To make this work, you need to install the following HACS plugins:
 
-### Example Lovelace Configuration
+- decluttering-card
+- auto-entities
+- bubble-card
+- simple-tabs
+- button-card
 
 ```yaml
 decluttering_templates:

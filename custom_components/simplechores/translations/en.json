@@ -243,6 +243,93 @@
           "chore": "Chore to edit"
         }
       },
+      "edit_chore_basic": {
+        "title": "Edit Chore - Basic Information",
+        "description": "Update the chore's basic information.",
+        "data": {
+          "chore_name": "Chore name",
+          "points": "Points earned",
+          "area_id": "Area"
+        },
+        "data_description": {
+          "chore_name": "Name of the chore",
+          "points": "How many points are earned for completing this chore",
+          "area_id": "Which area of your home is this chore for?"
+        }
+      },
+      "edit_chore_assignees": {
+        "title": "Edit Chore - Assignment",
+        "description": "Configure who can do this chore and how it should be assigned.",
+        "data": {
+          "assignees": "Who can do this chore?",
+          "assignment_mode": "Assignment mode"
+        },
+        "data_description": {
+          "assignees": "Select which members can be assigned this chore",
+          "assignment_mode": "How should this chore be assigned to members?"
+        }
+      },
+      "edit_chore_recurrence": {
+        "title": "Edit Chore - Recurrence Pattern",
+        "description": "How often should this chore recur?",
+        "data": {
+          "recurrence_pattern": "Recurrence pattern"
+        }
+      },
+      "edit_chore_interval": {
+        "title": "Edit Chore - Recurrence Interval",
+        "description": "Configure the interval for this chore's recurrence.",
+        "data": {
+          "recurrence_interval": "Number of days"
+        },
+        "data_description": {
+          "recurrence_interval": "Chore will recur every X days"
+        }
+      },
+      "edit_chore_monthly_day": {
+        "title": "Edit Chore - Monthly (Day)",
+        "description": "On which day of the month should this chore recur?",
+        "data": {
+          "recurrence_day_of_month": "Day of month"
+        },
+        "data_description": {
+          "recurrence_day_of_month": "Day number (1-31, or -1 for last day of month)"
+        }
+      },
+      "edit_chore_monthly_weekday": {
+        "title": "Edit Chore - Monthly (Weekday)",
+        "description": "On which week and weekday should this chore recur?",
+        "data": {
+          "recurrence_week_of_month": "Week of month",
+          "weekday": "Weekday"
+        },
+        "data_description": {
+          "recurrence_week_of_month": "Which week (first, second, third, fourth, or last)",
+          "weekday": "Which day of the week"
+        }
+      },
+      "edit_chore_specific_days": {
+        "title": "Edit Chore - Specific Weekdays",
+        "description": "On which days of the week should this chore recur?",
+        "data": {
+          "recurrence_specific_weekdays": "Weekdays"
+        },
+        "data_description": {
+          "recurrence_specific_weekdays": "Select one or more days of the week"
+        }
+      },
+      "edit_chore_annual": {
+        "title": "Edit Chore - Annual Recurrence",
+        "description": "On which date should this chore recur annually?",
+        "data": {
+          "recurrence_annual_month": "Month",
+          "recurrence_annual_day": "Day"
+        },
+        "data_description": {
+          "recurrence_annual_month": "Which month",
+          "recurrence_annual_day": "Which day of the month (1-31)"
+        }
+      },
       "delete_chore": {
         "title": "Delete Chore",
         "description": "Select a chore to permanently delete. This will remove the chore and all its entities.",

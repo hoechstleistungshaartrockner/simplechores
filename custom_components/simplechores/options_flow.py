@@ -43,6 +43,9 @@ from .const import (
 )
 from .member import Member
 from .chore import Chore
+import time
+import random
+from datetime import date
 
 from homeassistant.helpers import device_registry as dr, area_registry as ar
 
@@ -755,7 +758,6 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         
         if self._chore_mode == "add":
             # Create unique ID for chore (slugified name + timestamp)
-            import time
             chore_name = self._chore_data["chore_name"]
             chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
             
@@ -781,13 +783,11 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             if assignment_mode == ASSIGN_MODE_ALWAYS and assignees:
                 chore.assigned_to = assignees[0]
             elif assignment_mode == ASSIGN_MODE_ROTATE and assignees:
-                chore.assigned_to = assignees[0]
+                chore.assigned_to = random.choice(assignees)
             elif assignment_mode == ASSIGN_MODE_RANDOM and assignees:
-                import random
                 chore.assigned_to = random.choice(assignees)
             
             # Set the first due date to today
-            from datetime import date
             chore.next_due = date.today().isoformat()
             
             # Add to storage

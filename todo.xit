@@ -4,5 +4,5 @@ To Do
 [x] add a "delete all chores" option to the "manage chores" page
 [x] fix "delete member" functionality
 [ ] add a "delete all members" option to the "manage members" page
-[ ] fix the assignment method that is selectable when creating a new chore; currently, "always" is selectable, even if the chore can be assigned to multiple members.
+[x] fix the assignment method that is selectable when creating a new chore; currently, "always" is selectable, even if the chore can be assigned to multiple members.
 [x] implement "edit existing chore" functionality

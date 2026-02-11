@@ -107,9 +107,18 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                         sw_version=DEVICE_SW_VERSION,
                     )
                     
-                    # Reload entry to create entities
-                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                    return self.async_create_entry(title="", data={})
+                    # Store member name for next steps
+                    self._selected_member = new_member_name
+                    
+                    # Check if there are any chores to assign
+                    chores = storage.get_chores()
+                    if chores:
+                        # Move to chore assignment step
+                        return await self.async_step_add_member_assign_chores()
+                    else:
+                        # No chores, complete the flow
+                        await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                        return self.async_create_entry(title="", data={})
         
         schema = vol.Schema({
             vol.Required("member_name"): cv.string,
@@ -119,6 +128,108 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             step_id="add_member",
             data_schema=schema,
             errors=errors,
+        )
+
+    async def async_step_add_member_assign_chores(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Select which chores can be assigned to the new member."""
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        chores = storage.get_chores()
+        
+        if user_input is not None:
+            selected_chores = user_input.get("chores", [])
+            
+            if selected_chores:
+                # Store selected chores for next step
+                self._chore_data = {"selected_chores": selected_chores}
+                return await self.async_step_add_member_assignment_mode()
+            else:
+                # No chores selected, complete the flow
+                self._selected_member = None
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                return self.async_create_entry(title="", data={})
+        
+        # Create chore choices
+        chore_choices = {chore_id: chore.name for chore_id, chore in chores.items()}
+        
+        schema = vol.Schema({
+            vol.Optional("chores", default=[]): cv.multi_select(chore_choices),
+        })
+        
+        return self.async_show_form(
+            step_id="add_member_assign_chores",
+            data_schema=schema,
+            description_placeholders={
+                "member_name": self._selected_member,
+            },
+        )
+
+    async def async_step_add_member_assignment_mode(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Select assignment mode for chores assigned to the new member."""
+        errors = {}
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        selected_chore_ids = self._chore_data.get("selected_chores", [])
+        
+        if user_input is not None:
+            assignment_mode = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
+            
+            # Update selected chores with new member and assignment mode
+            for chore_id in selected_chore_ids:
+                chore = storage.get_chore(chore_id)
+                if chore:
+                    # Add new member to possible_assignees if not already there
+                    if self._selected_member not in chore.possible_assignees:
+                        chore.possible_assignees.append(self._selected_member)
+                    
+                    # Validate and update assignment mode
+                    if assignment_mode == ASSIGN_MODE_ALWAYS:
+                        # For always mode, need exactly one assignee
+                        if len(chore.possible_assignees) == 1:
+                            chore.assignment_mode = ASSIGN_MODE_ALWAYS
+                            chore.assigned_to = chore.possible_assignees[0]
+                        else:
+                            # More than one assignee, cannot use always mode
+                            errors["assignment_mode"] = "always_mode_one_person"
+                            break
+                    elif assignment_mode in [ASSIGN_MODE_ROTATE, ASSIGN_MODE_RANDOM]:
+                        # For rotate/random mode, need at least two assignees
+                        if len(chore.possible_assignees) >= 2:
+                            chore.assignment_mode = assignment_mode
+                            # Keep current assignment or assign to new member if needed
+                            if not chore.assigned_to or chore.assigned_to not in chore.possible_assignees:
+                                chore.assigned_to = chore.possible_assignees[0]
+                        else:
+                            # Only one assignee, cannot use rotate/random mode
+                            errors["assignment_mode"] = "rotate_random_two_people"
+                            break
+                    
+                    storage.update_chore(chore_id, chore)
+            
+            if not errors:
+                await storage.async_save()
+                
+                # Clear temporary data
+                self._selected_member = None
+                self._chore_data = {}
+                
+                # Reload entry to update entities
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                return self.async_create_entry(title="", data={})
+        
+        schema = vol.Schema({
+            vol.Required("assignment_mode", default=ASSIGN_MODE_ALWAYS): vol.In({
+                ASSIGN_MODE_ALWAYS: "Always (same person)",
+                ASSIGN_MODE_ROTATE: "Rotate (take turns)",
+                ASSIGN_MODE_RANDOM: "Random",
+            }),
+        })
+        
+        return self.async_show_form(
+            step_id="add_member_assignment_mode",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "member_name": self._selected_member,
+            },
         )
 
     async def async_step_edit_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
@@ -330,9 +441,19 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 default_assignment_mode = chore.assignment_mode
         
         if user_input is not None:
-            self._chore_data["assignment_mode"] = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
-            self._chore_data["assignees"] = user_input.get("assignees", member_list)
-            return await self.async_step_chore_recurrence()
+            assignment_mode = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
+            assignees = user_input.get("assignees", member_list)
+            
+            # Validate assignment mode and assignees combination
+            if assignment_mode == ASSIGN_MODE_ALWAYS and len(assignees) != 1:
+                errors["assignees"] = "always_mode_one_person"
+            elif assignment_mode in [ASSIGN_MODE_ROTATE, ASSIGN_MODE_RANDOM] and len(assignees) < 2:
+                errors["assignees"] = "rotate_random_two_people"
+            
+            if not errors:
+                self._chore_data["assignment_mode"] = assignment_mode
+                self._chore_data["assignees"] = assignees
+                return await self.async_step_chore_recurrence()
         
         schema = vol.Schema({
             vol.Optional("assignees", default=default_assignees): cv.multi_select(
@@ -948,6 +1069,12 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             # Add reassign_to member to possible_assignees if not already there
             if reassign_to and reassign_to not in chore.possible_assignees:
                 chore.possible_assignees.append(reassign_to)
+                modified = True
+            
+            # If only one possible assignee remains, switch to "always" mode
+            if len(chore.possible_assignees) == 1 and chore.assignment_mode in [ASSIGN_MODE_ROTATE, ASSIGN_MODE_RANDOM]:
+                chore.assignment_mode = ASSIGN_MODE_ALWAYS
+                chore.assigned_to = chore.possible_assignees[0]
                 modified = True
             
             if modified:

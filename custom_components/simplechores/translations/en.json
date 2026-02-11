@@ -111,6 +111,20 @@
           "member_name": "Member name"
         }
       },
+      "add_member_assign_chores": {
+        "title": "Assign Chores to {member_name}",
+        "description": "Select which chores can be assigned to this new member. You can skip this step by not selecting any chores.",
+        "data": {
+          "chores": "Chores to assign (optional)"
+        }
+      },
+      "add_member_assignment_mode": {
+        "title": "Assignment Mode for {member_name}",
+        "description": "Choose how the selected chores should be assigned. This will update the assignment mode for all selected chores.",
+        "data": {
+          "assignment_mode": "Assignment mode"
+        }
+      },
       "edit_member": {
         "title": "Select Member to Edit",
         "description": "Choose which member you want to edit.",
@@ -354,7 +368,9 @@
       "member_not_found": "Member not found",
       "chore_not_found": "Chore not found",
       "cannot_delete_last_member": "Cannot delete the last member. At least one member must remain.",
-      "not_implemented": "This feature is not yet implemented"
+      "not_implemented": "This feature is not yet implemented",
+      "always_mode_one_person": "Assignment mode 'Always' requires exactly one person to be selected",
+      "rotate_random_two_people": "Assignment modes 'Rotate' and 'Random' require at least two people to be selected"
     }
   },
   "errors": {

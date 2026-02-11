@@ -138,6 +138,16 @@
           "member": "Member to delete"
         }
       },
+      "delete_member_reassign": {
+        "title": "Delete Member: {member_name}",
+        "description": "This member has assigned chores. Select another member to take over their chores and be added to the possible assignees list.",
+        "data": {
+          "reassign_to": "Reassign chores to"
+        },
+        "data_description": {
+          "reassign_to": "Select which member should take over the chores"
+        }
+      },
       "add_chore": {
         "title": "Add New Chore - Basic Information",
         "description": "Create a new household chore to track.",
@@ -248,6 +258,7 @@
       "no_chores": "No chores exist to manage",
       "member_not_found": "Member not found",
       "chore_not_found": "Chore not found",
+      "cannot_delete_last_member": "Cannot delete the last member. At least one member must remain.",
       "not_implemented": "This feature is not yet implemented"
     }
   },

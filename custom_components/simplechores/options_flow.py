@@ -540,33 +540,33 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         return self.async_abort(reason="not_implemented")
 
     async def async_step_delete_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
-        """Delete a household member."""
+        """Delete a household member - Step 1: Select member to delete."""
         storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
         members = storage.get_members()
         
         if not members:
             return self.async_abort(reason="no_members")
         
+        if len(members) == 1:
+            return self.async_abort(reason="cannot_delete_last_member")
+        
         if user_input is not None:
-            member_to_delete = user_input.get("member")
+            self._selected_member = user_input.get("member")
             
-            # Remove from storage
-            if storage.delete_member(member_to_delete):
-                await storage.async_save()
-                
-                # Remove device
-                device_reg = dr.async_get(self.hass)
-                device = device_reg.async_get_device(
-                    identifiers={(DOMAIN, f"member_{member_to_delete}")}
-                )
-                if device:
-                    device_reg.async_remove_device(device.id)
-                
-                # Refresh coordinator
-                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
-                await coordinator.async_refresh_data()
+            # Check if member has any assigned chores
+            chores = storage.get_chores()
+            has_assigned_chores = any(
+                chore.assigned_to == self._selected_member or 
+                self._selected_member in chore.possible_assignees
+                for chore in chores.values()
+            )
             
-            return self.async_create_entry(title="", data={})
+            if has_assigned_chores:
+                # Need to reassign chores
+                return await self.async_step_delete_member_reassign()
+            else:
+                # No chores to reassign, delete directly
+                return await self._finalize_delete_member(None)
         
         schema = vol.Schema({
             vol.Required("member"): vol.In(list(members.keys())),
@@ -576,3 +576,76 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             step_id="delete_member",
             data_schema=schema,
         )
+
+    async def async_step_delete_member_reassign(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Delete a household member - Step 2: Reassign their chores."""
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        members = storage.get_members()
+        
+        # Get remaining members (excluding the one being deleted)
+        remaining_members = {k: v for k, v in members.items() if k != self._selected_member}
+        
+        if user_input is not None:
+            reassign_to = user_input.get("reassign_to")
+            return await self._finalize_delete_member(reassign_to)
+        
+        schema = vol.Schema({
+            vol.Required("reassign_to"): vol.In(list(remaining_members.keys())),
+        })
+        
+        return self.async_show_form(
+            step_id="delete_member_reassign",
+            data_schema=schema,
+            description_placeholders={
+                "member_name": self._selected_member,
+            },
+        )
+
+    async def _finalize_delete_member(self, reassign_to: str | None) -> FlowResult:
+        """Finalize member deletion and reassign chores if needed."""
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        member_to_delete = self._selected_member
+        
+        # Update all chores
+        chores = storage.get_chores()
+        for chore_id, chore in chores.items():
+            modified = False
+            
+            # If chore is assigned to deleted member, reassign it
+            if chore.assigned_to == member_to_delete:
+                chore.assigned_to = reassign_to
+                modified = True
+            
+            # Remove deleted member from possible_assignees
+            if member_to_delete in chore.possible_assignees:
+                chore.possible_assignees.remove(member_to_delete)
+                modified = True
+            
+            # Add reassign_to member to possible_assignees if not already there
+            if reassign_to and reassign_to not in chore.possible_assignees:
+                chore.possible_assignees.append(reassign_to)
+                modified = True
+            
+            if modified:
+                storage.update_chore(chore_id, chore)
+        
+        # Remove member from storage
+        if storage.delete_member(member_to_delete):
+            await storage.async_save()
+            
+            # Remove device
+            device_reg = dr.async_get(self.hass)
+            device = device_reg.async_get_device(
+                identifiers={(DOMAIN, f"member_{member_to_delete}")}
+            )
+            if device:
+                device_reg.async_remove_device(device.id)
+            
+            # Refresh coordinator
+            coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+            await coordinator.async_refresh_data()
+        
+        # Clear selected member
+        self._selected_member = None
+        
+        return self.async_create_entry(title="", data={})

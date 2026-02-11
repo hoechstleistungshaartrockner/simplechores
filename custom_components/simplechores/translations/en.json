@@ -100,7 +100,8 @@
         "menu_options": {
           "add_chore": "Add new chore",
           "edit_chore": "Edit existing chore",
-          "delete_chore": "Delete chore"
+          "delete_chore": "Delete chore",
+          "delete_all_chores": "Delete all chores"
         }
       },
       "add_member": {
@@ -244,9 +245,16 @@
       },
       "delete_chore": {
         "title": "Delete Chore",
-        "description": "Select a chore to permanently delete.",
+        "description": "Select a chore to permanently delete. This will remove the chore and all its entities.",
         "data": {
           "chore": "Chore to delete"
+        }
+      },
+      "delete_all_chores": {
+        "title": "Delete All Chores",
+        "description": "⚠️ WARNING: This will permanently delete all {chore_count} chores and their entities. This action cannot be undone!\n\nAre you sure you want to delete all chores?",
+        "data": {
+          "confirm": "Yes, delete all chores"
         }
       }
     },

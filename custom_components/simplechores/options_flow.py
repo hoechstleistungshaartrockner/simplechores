@@ -245,7 +245,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         """Show chore management submenu."""
         return self.async_show_menu(
             step_id="manage_chores",
-            menu_options=["add_chore", "edit_chore", "delete_chore"],
+            menu_options=["add_chore", "edit_chore", "delete_chore", "delete_all_chores"],
         )
 
     async def async_step_add_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
@@ -536,8 +536,91 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_delete_chore(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Delete a chore."""
-        # TODO: Implement chore deletion
-        return self.async_abort(reason="not_implemented")
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        chores = storage.get_chores()
+        
+        if not chores:
+            return self.async_abort(reason="no_chores")
+        
+        if user_input is not None:
+            chore_id = user_input.get("chore")
+            chore = storage.get_chore(chore_id)
+            
+            if chore:
+                # Remove chore from storage
+                storage.delete_chore(chore_id)
+                await storage.async_save()
+                
+                # Remove device
+                device_reg = dr.async_get(self.hass)
+                device = device_reg.async_get_device(
+                    identifiers={(DOMAIN, f"chore_{chore_id}")}
+                )
+                if device:
+                    device_reg.async_remove_device(device.id)
+                
+                # Refresh coordinator
+                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+                await coordinator.async_refresh_data()
+            
+            return self.async_create_entry(title="", data={})
+        
+        # Create chore choices with chore names as display
+        chore_choices = {chore_id: chore.name for chore_id, chore in chores.items()}
+        
+        schema = vol.Schema({
+            vol.Required("chore"): vol.In(chore_choices),
+        })
+        
+        return self.async_show_form(
+            step_id="delete_chore",
+            data_schema=schema,
+        )
+
+    async def async_step_delete_all_chores(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Delete all chores with confirmation."""
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        chores = storage.get_chores()
+        
+        if not chores:
+            return self.async_abort(reason="no_chores")
+        
+        if user_input is not None:
+            if user_input.get("confirm"):
+                device_reg = dr.async_get(self.hass)
+                
+                # Delete all chores
+                for chore_id in list(chores.keys()):
+                    # Remove device
+                    device = device_reg.async_get_device(
+                        identifiers={(DOMAIN, f"chore_{chore_id}")}
+                    )
+                    if device:
+                        device_reg.async_remove_device(device.id)
+                    
+                    # Remove from storage
+                    storage.delete_chore(chore_id)
+                
+                await storage.async_save()
+                
+                # Refresh coordinator
+                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+                await coordinator.async_refresh_data()
+            
+            return self.async_create_entry(title="", data={})
+        
+        # Show confirmation dialog
+        schema = vol.Schema({
+            vol.Required("confirm", default=False): bool,
+        })
+        
+        return self.async_show_form(
+            step_id="delete_all_chores",
+            data_schema=schema,
+            description_placeholders={
+                "chore_count": str(len(chores)),
+            },
+        )
 
     async def async_step_delete_member(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Delete a household member - Step 1: Select member to delete."""

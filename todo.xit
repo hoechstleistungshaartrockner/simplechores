@@ -1,6 +1,6 @@
 To Do
 [x] put Areas in the "new chore" options flow form
-[ ] add a "delete chore" option to the "manage chores" page
-[ ] add a "delete all chores" option to the "manage chores" page
+[x] add a "delete chore" option to the "manage chores" page
+[x] add a "delete all chores" option to the "manage chores" page
 [x] fix "delete member" functionality
 [ ] add a "delete all members" option to the "manage chores" page

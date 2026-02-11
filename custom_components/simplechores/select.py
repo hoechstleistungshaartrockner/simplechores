@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers import area_registry as ar
 
 from .const import (
     DOMAIN,
@@ -359,6 +360,15 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
                     attrs["due_in_days"] = due_in_days
                 except (ValueError, TypeError):
                     pass
+            
+            # Add area information
+            if chore.area_id:
+                attrs["area_id"] = chore.area_id
+                # Get area name from registry
+                area_reg = ar.async_get(self.hass)
+                area = area_reg.async_get_area(chore.area_id)
+                if area:
+                    attrs["area_name"] = area.name
         
         return attrs
 

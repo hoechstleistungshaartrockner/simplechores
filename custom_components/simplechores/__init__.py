@@ -66,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     all_chores = storage.get_chores()
     
     for chore_id, chore in all_chores.items():
-        device_reg.async_get_or_create(
+        device = device_reg.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, f"chore_{chore_id}")},
             name=chore.name,
@@ -74,6 +74,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             model=DEVICE_MODEL_CHORE,
             sw_version=DEVICE_SW_VERSION,
         )
+        
+        # Assign to area if specified
+        if chore.area_id:
+            device_reg.async_update_device(device.id, area_id=chore.area_id)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {

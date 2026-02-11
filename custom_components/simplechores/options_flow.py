@@ -44,7 +44,7 @@ from .const import (
 from .member import Member
 from .chore import Chore
 
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, area_registry as ar
 
 
 
@@ -267,31 +267,57 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 # Store basic chore data
                 self._chore_data = {
                     "chore_name": chore_name,
-                    "points": user_input.get("points", 0),
-                    "assignment_mode": user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS),
-                    "assignees": user_input.get("assignees", list(members.keys())),
+                    "points": user_input.get("points", 10),
+                    "area_id": user_input.get("area_id"),
                 }
-                # Move to recurrence pattern selection
-                return await self.async_step_add_chore_recurrence()
+                # Move to assignment configuration
+                return await self.async_step_add_chore_assignees()
         
-        # Create member list for assignees
-        member_list = list(members.keys())
+        # Get available areas
+        area_reg = ar.async_get(self.hass)
+        areas = area_reg.async_list_areas()
+        area_choices = {area.id: area.name for area in areas}
+        area_choices["none"] = "No area"
         
         schema = vol.Schema({
             vol.Required("chore_name"): cv.string,
             vol.Optional("points", default=10): cv.positive_int,
+            vol.Optional("area_id", default="none"): vol.In(area_choices),
+        })
+        
+        return self.async_show_form(
+            step_id="add_chore",
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_add_chore_assignees(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
+        """Add a new chore - Step 2: Assignment configuration."""
+        errors = {}
+        storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
+        members = storage.get_members()
+        member_list = list(members.keys())
+        
+        if user_input is not None:
+            # Store assignment data
+            self._chore_data["assignment_mode"] = user_input.get("assignment_mode", ASSIGN_MODE_ALWAYS)
+            self._chore_data["assignees"] = user_input.get("assignees", member_list)
+            # Move to recurrence pattern selection
+            return await self.async_step_add_chore_recurrence()
+        
+        schema = vol.Schema({
+            vol.Optional("assignees", default=member_list): cv.multi_select(
+                {member: member for member in member_list}
+            ),
             vol.Required("assignment_mode", default=ASSIGN_MODE_ALWAYS): vol.In({
                 ASSIGN_MODE_ALWAYS: "Always (same person)",
                 ASSIGN_MODE_ROTATE: "Rotate (take turns)",
                 ASSIGN_MODE_RANDOM: "Random",
             }),
-            vol.Optional("assignees", default=member_list): cv.multi_select(
-                {member: member for member in member_list}
-            ),
         })
         
         return self.async_show_form(
-            step_id="add_chore",
+            step_id="add_chore_assignees",
             data_schema=schema,
             errors=errors,
         )
@@ -457,6 +483,10 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
         
         # Create the chore with all collected data
+        area_id = self._chore_data.get("area_id")
+        if area_id == "none":
+            area_id = None
+        
         chore = Chore(
             name=chore_name,
             points=self._chore_data.get("points", 0),
@@ -469,6 +499,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             recurrence_specific_weekdays=self._chore_data.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, []),
             recurrence_annual_month=self._chore_data.get(CONF_RECURRENCE_ANNUAL_MONTH),
             recurrence_annual_day=self._chore_data.get(CONF_RECURRENCE_ANNUAL_DAY),
+            area_id=area_id,
         )
         
         # Assign initial member if needed

@@ -122,6 +122,8 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `assigned_to`: member name the chore is assigned to (if any)
     - `next_due`: ISO date string of next due date
     - `due_in_days`: number of days until due (can be negative if overdue)
+    - `area_id`: Home Assistant area ID (UUID) if chore is assigned to an area
+    - `area_name`: human-readable area name (e.g., "Living Room") if chore is assigned to an area
     - `related_entities`: dictionary of related entity IDs for this chore
 
 - `select.{chore_id}_assigned_to`
@@ -196,19 +198,19 @@ decluttering_templates:
           template: chore_state_section
           variables:
             - user: '[[user]]'
-            - state: "overdue"
+            - state: overdue
             - icon: mdi:clipboard-alert
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
             - user: '[[user]]'
-            - state: "pending"
+            - state: pending
             - icon: mdi:clipboard-list
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
             - user: '[[user]]'
-            - state: "completed"
+            - state: completed
             - icon: mdi:clipboard-check
   chore_state_section:
     card:
@@ -232,7 +234,7 @@ decluttering_templates:
               - entity_id: '*_status'
                 integration: simplechores
                 state: '[[state]]'
-                attributes: 
+                attributes:
                   assigned_to: '[[user]]'
                 options:
                   type: custom:decluttering-card
@@ -246,57 +248,69 @@ decluttering_templates:
       show_name: true
       show_label: true
       show_state: false
-      hold_action:
-        action: more-info
-      tap_action:
-        action: call-service
-        service: simplechores.toggle_chore
-        service_data:
-          member: |
-            [[[
-              return hass.user.name;
-            ]]]
-          entity_id: '[[entity]]'
+      styles:
+        grid:
+          - grid-template-areas: '"area icon1" "n n" "l l"'
+          - grid-template-rows: 18px 1fr 24px
+          - grid-template-columns: 60% 40%
+        card:
+          - height: 100%
+          - padding: 1rem
+          - background: |
+              [[[
+                if (entity.state === 'pending') return "#215E61";
+                if (entity.state === 'overdue') return "#820300";
+                return "rgba(255, 255, 255, 0.1)";
+              ]]]
+        name:
+          - text-align: left
+          - font-size: 18px
+          - font-weight: 500
+          - justify-self: start
+          - align-self: end
+          - color: white
+        label:
+          - text-align: left
+          - font-size: 12px
+          - opacity: 0.7
+          - justify-self: start
+          - align-self: center
+          - color: white
+        custom_fields:
+          area:
+            - justify-self: start
+            - align-self: start
+            - font-size: 14px
+            - font-weight: 500
+          icon1:
+            - justify-self: end
+            - width: 28px
+            - color: white
       name: |
         [[[
-          // Get the friendly name
           const full = entity.attributes.friendly_name || entity.entity_id;
-
-          // Split into words
           const parts = full.split(" ");
-
-          // Remove the last word (e.g., "Status")
           parts.pop();
-
-          // Return the shortened name
           return parts.join(" ");
         ]]]
       label: |
         [[[
-          // Now we can use the related_entities attribute instead of constructing IDs
-          const relatedEntities = entity.attributes.related_entities || {};
-          
-          const overdueId = relatedEntities.days_overdue;
+          const related = entity.attributes.related_entities || {};
+          const overdueId = related.days_overdue;
           const overdue = states[overdueId];
-
-          // Overdue case
           if (entity.state === 'overdue' && overdue) {
-            const overdue_days = overdue.state;
-            return overdue_days + " days overdue";
+            return overdue.state + " days overdue";
           }
-
-          // Completed case → show due_in_days
           if (entity.state === 'completed') {
-            const days = entity.attributes.due_in_days;
-            return `Due in ${days} days`;
+            return `Due in ${entity.attributes.due_in_days} days`;
           }
-
-          // Default fallback
           return entity.state + " ...";
         ]]]
-
-
       custom_fields:
+        area: |
+          [[[
+            return entity.attributes.area_name
+          ]]]
         icon1:
           card:
             type: custom:button-card
@@ -311,9 +325,8 @@ decluttering_templates:
               action: more-info
               entity: |
                 [[[
-                  // Use related_entities instead of constructing the ID
-                  const relatedEntities = entity.attributes.related_entities || {};
-                  return relatedEntities.mark_completed_by;
+                  const related = entity.attributes.related_entities || {};
+                  return related.mark_completed_by;
                 ]]]
             tap_action:
               action: call-service
@@ -332,39 +345,21 @@ decluttering_templates:
               icon:
                 - width: 24px
                 - color: rgba(255, 255, 255, 0.8)
-      styles:
-        grid:
-          - grid-template-areas: '". icon1" "n n" "l l"'
-          - grid-template-rows: 24px 1fr 24px
-          - grid-template-columns: 60% 40%
-        card:
-          - height: 100%
-          - padding: 1rem
-          - background: |
-              [[[
-                if (entity.state === 'pending') return "#215E61";
-                if (entity.state === 'overdue') return "red";
-                return "rgba(255, 255, 255, 0.1)";
-              ]]]
-        name:
-          - text-align: left
-          - font-size: 18px
-          - font-weight: 500
-          - justify-self: start
-          - align-self: end
-          - color: white
-        label:
-          - text-align: left
-          - font-size: 12px
-          - opacity: 0.7
-          - justify-self: start
-          - align-self: center
-          - color: white
-        custom_fields:
-          icon1:
-            - justify-self: end
-            - width: 28px
-            - color: white
+
+      hold_action:
+        action: more-info
+  
+      tap_action:
+        action: call-service
+        service: simplechores.toggle_chore
+        service_data:
+          member: |
+            [[[
+              return hass.user.name;
+            ]]]
+          entity_id: '[[entity]]'
+
+
 views:
   - path: choochoo
     title: chores
@@ -379,7 +374,7 @@ views:
               type: custom:decluttering-card
               template: all_chore_state_sections
               variables:
-                - user: "test"
+                - user: test
           - title: Member 2
             icon: mdi:format-list-checkbox
             id: tab2
@@ -387,7 +382,7 @@ views:
               type: custom:decluttering-card
               template: all_chore_state_sections
               variables:
-                - user: "Member 2"
+                - user: Member 2
       - type: grid
         cards:
           - type: markdown

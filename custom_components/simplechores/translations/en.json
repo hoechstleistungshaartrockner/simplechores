@@ -139,30 +139,40 @@
         }
       },
       "add_chore": {
-        "title": "Add New Chore",
+        "title": "Add New Chore - Basic Information",
         "description": "Create a new household chore to track.",
         "data": {
           "chore_name": "Chore name",
           "points": "Points earned",
-          "assignment_mode": "Assignment mode",
-          "assignees": "Who can do this chore?"
+          "area_id": "Area"
         },
         "data_description": {
           "chore_name": "Name of the chore",
           "points": "How many points are earned for completing this chore",
-          "assignment_mode": "How should this chore be assigned?",
-          "assignees": "Select which members can be assigned this chore"
+          "area_id": "Which area of your home is this chore for?"
+        }
+      },
+      "add_chore_assignees": {
+        "title": "Add New Chore - Assignment",
+        "description": "Configure who can do this chore and how it should be assigned.",
+        "data": {
+          "assignees": "Who can do this chore?",
+          "assignment_mode": "Assignment mode"
+        },
+        "data_description": {
+          "assignees": "Select which members can be assigned this chore",
+          "assignment_mode": "How should this chore be assigned to members?"
         }
       },
       "add_chore_recurrence": {
-        "title": "Chore Recurrence Pattern",
+        "title": "Add New Chore - Recurrence Pattern",
         "description": "How often should this chore recur?",
         "data": {
           "recurrence_pattern": "Recurrence pattern"
         }
       },
       "add_chore_interval": {
-        "title": "Recurrence Interval",
+        "title": "Add New Chore - Recurrence Interval",
         "description": "Configure the interval for this chore's recurrence.",
         "data": {
           "recurrence_interval": "Number of days"
@@ -172,7 +182,7 @@
         }
       },
       "add_chore_monthly_day": {
-        "title": "Monthly Recurrence - Day",
+        "title": "Add New Chore - Monthly (Day)",
         "description": "On which day of the month should this chore recur?",
         "data": {
           "recurrence_day_of_month": "Day of month"
@@ -182,7 +192,7 @@
         }
       },
       "add_chore_monthly_weekday": {
-        "title": "Monthly Recurrence - Weekday",
+        "title": "Add New Chore - Monthly (Weekday)",
         "description": "On which week and weekday should this chore recur?",
         "data": {
           "recurrence_week_of_month": "Week of month",
@@ -194,7 +204,7 @@
         }
       },
       "add_chore_specific_days": {
-        "title": "Specific Weekdays",
+        "title": "Add New Chore - Specific Weekdays",
         "description": "On which days of the week should this chore recur?",
         "data": {
           "recurrence_specific_weekdays": "Weekdays"
@@ -204,7 +214,7 @@
         }
       },
       "add_chore_annual": {
-        "title": "Annual Recurrence",
+        "title": "Add New Chore - Annual Recurrence",
         "description": "On which date should this chore recur annually?",
         "data": {
           "recurrence_annual_month": "Month",

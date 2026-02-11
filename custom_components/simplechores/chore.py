@@ -44,6 +44,7 @@ class Chore:
     recurrence_specific_weekdays: List[int] = field(default_factory=list) # for recurrence on specific weekdays (0=Monday, 1=Tuesday, etc.)
     recurrence_annual_month: int | None = None # for annual recurrence on a specific month (1-12)
     recurrence_annual_day: int | None = None # for annual recurrence on a specific day (1-365, -1 for last day of the year)
+    area_id: str | None = None  # Home Assistant area ID for this chore
     
     def to_dict(self) -> Dict:
         """Convert the Chore dataclass to a dictionary."""
@@ -69,6 +70,7 @@ class Chore:
             recurrence_specific_weekdays=data.get("recurrence_specific_weekdays", []),
             recurrence_annual_month=data.get("recurrence_annual_month"),
             recurrence_annual_day=data.get("recurrence_annual_day"),
+            area_id=data.get("area_id"),
         )
     
     def mark_completed(self, member_name: str, storage=None, completion_date: date | None = None) -> None:

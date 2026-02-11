@@ -25,11 +25,155 @@ If you find this integration useful and want to support its development, please 
 4. In the "Repository" field, paste the URL of this repository (https://github.com/hoechstleistungshaartrockner/simplechores).
 5. For "Category", select "Integration".
 6. Click "Add".
-7. Now go to the "Integrations" section in HACS, search for "Simple Chores", and click "Install".
+7. in HACS, search for "Simple Chores", and click "Download".
+8. Go to "Configuration" → "Integrations" in Home Assistant.
+9. Click the "+" button to add a new integration.
+10. Search for "Simple Chores" and follow the prompts to set it up.
+11. To add your first chore, click on the gear icon of the integration in the "Integrations" page, and click "Manage Chores". From there, you can create and manage your chores.
 
 
+## Created Devices and Entities
+In this integration, "Members" and "Chores" are the two main concepts. For both of these, the integration creates a device and multiple entities to represent their state.
+Here's a breakdown of the created entities and their attributes for both Members and Chores:
 
-### Example Dashboard Configuration
+### Member Entities
+
+Member names are sanitized (lowercased, spaces replaced with underscores) for use in entity IDs. For example, a member named "John Doe" would have entity IDs like `sensor.john_doe_points_earned_today`.
+
+**Points Tracking Sensors** (tracks points earned from completed chores):
+- `sensor.{member_name}_points_earned_today`
+  - State: numeric value, total points earned today
+  - Unit: configurable points label (default: "points")
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_points_earned_this_week`
+  - State: numeric value, total points earned this week (starting Monday)
+  - Unit: configurable points label (default: "points")
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_points_earned_this_month`
+  - State: numeric value, total points earned this month
+  - Unit: configurable points label (default: "points")
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_points_earned_this_year`
+  - State: numeric value, total points earned this year
+  - Unit: configurable points label (default: "points")
+  - Attributes:
+    - `integration`: "simplechores"
+
+**Chore Completion Tracking Sensors** (tracks number of chores completed):
+- `sensor.{member_name}_chores_completed_today`
+  - State: numeric value, number of chores completed today
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_chores_completed_this_week`
+  - State: numeric value, number of chores completed this week
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_chores_completed_this_month`
+  - State: numeric value, number of chores completed this month
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_chores_completed_this_year`
+  - State: numeric value, number of chores completed this year
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+**Status Sensors** (current state):
+- `sensor.{member_name}_chores_pending`
+  - State: numeric value, number of pending chores currently assigned to member
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_chores_overdue`
+  - State: numeric value, number of overdue chores currently assigned to member
+  - Unit: "chores"
+  - Attributes:
+    - `integration`: "simplechores"
+
+- `sensor.{member_name}_assigned_chore_entities`
+  - State: numeric value, total count of chores assigned to member
+  - Attributes:
+    - `integration`: "simplechores"
+    - `entity_ids`: list of status entity IDs for all chores assigned to this member (useful for automations and dashboard filtering)
+
+### Chore Entities
+
+Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}_{timestamp}` (e.g., `take_out_trash_1707685200`). All entity IDs for a chore use this chore_id as their base.
+
+- `select.{chore_id}_status`
+  - State: "pending", "completed", or "overdue"
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `assigned_to`: member name the chore is assigned to (if any)
+    - `next_due`: ISO date string of next due date
+    - `due_in_days`: number of days until due (can be negative if overdue)
+    - `related_entities`: dictionary of related entity IDs for this chore
+
+- `select.{chore_id}_assigned_to`
+  - State: name of the member assigned to the chore
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+
+- `select.{chore_id}_mark_completed_by`
+  - State: null (this is an action trigger entity)
+  - Purpose: Select a member to mark the chore as completed by that member (awards points and updates counters)
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+
+- `number.{chore_id}_points`
+  - State: numeric value representing points awarded for completing this chore
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+
+- `sensor.{chore_id}_days_overdue`
+  - State: numeric value representing days overdue (0 if not overdue)
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `status`: current status (pending/completed/overdue)
+    - `next_due`: ISO date string of next due date
+    - `assigned_to`: member name the chore is assigned to (if any)
+    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+
+- `sensor.{chore_id}_next_due`
+  - State: ISO date string of next due date
+  - Device Class: date
+  - Attributes:
+    - `integration`: "simplechores"
+    - `chore_id`: unique identifier for the chore
+    - `chore_name`: display name of the chore
+    - `recurrence_pattern`: pattern for chore recurrence (e.g., "daily", "weekly")
+    - `recurrence_interval`: interval for recurrence (numeric)
+    - `last_completed`: ISO date string of when chore was last completed
+    - `due_in_days`: number of days until due (can be negative if overdue)
+    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+
+## Example Dashboard Configuration
 
 This code snippet demonstrates how to create a chore dashboard using the decluttering-card and auto-entities card. It organizes chores into sections based on their state (overdue, pending, completed) and allows users to toggle chore states directly from the dashboard.
 **You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable.

@@ -2,7 +2,7 @@
     "domain": "simplechores",
     "name": "Simple Chores",
     "codeowners": ["@hoechstleistungshaartrockner"],
-    "version": "1.0.0",
+    "version": "0.1.2",
     "requirements": [],
     "dependencies": [],
     "config_flow": true,

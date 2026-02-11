@@ -31,9 +31,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     storage = SimpleChoresStorageManager(hass)
     await storage.async_load()
 
-    # Note: Members are now managed through storage and the options flow
-    # The config entry's CONF_MEMBERS is only used for initial setup
-    # and should not sync back to storage to avoid recreating deleted members
+    # If this is the very first run (storage file didn't exist), create members from config entry
+    # We check if storage.data is empty (not just members) to distinguish first run from "all members deleted"
+    if not storage.data.get("members") and not storage.data.get("chores") and CONF_MEMBERS in entry.data:
+        member_names = entry.data[CONF_MEMBERS]
+        for member_name in member_names:
+            member = Member(name=member_name)
+            storage.add_member(member)
+        await storage.async_save()
     
     coordinator = SimpleChoresCoordinator(hass, storage)
     await coordinator.async_config_entry_first_refresh()

@@ -86,3 +86,7 @@ toggle_chore:
       example: "John"
       selector:
         text:
+
+update_chores:
+  name: Update chores status
+  description: Check all chore due dates and update their statuses accordingly (overdue if past, pending if today, completed if future)

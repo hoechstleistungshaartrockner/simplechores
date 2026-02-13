@@ -12,6 +12,7 @@ from .const import (
     SERVICE_UPDATE_POINTS,
     SERVICE_RESET_POINTS,
     SERVICE_TOGGLE_CHORE,
+    SERVICE_UPDATE_CHORES,
     TRACKER_PERIOD_TODAY,
     TRACKER_PERIOD_THIS_WEEK,
     TRACKER_PERIOD_THIS_MONTH,
@@ -156,6 +157,53 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Save to disk in background (don't await to avoid blocking)
         hass.async_create_task(storage.async_save())
 
+    async def handle_update_chores(call: ServiceCall) -> None:
+        """Handle the update_chores service call."""
+        # Get the first config entry
+        entry_id = next(iter(hass.data[DOMAIN]))
+        storage = hass.data[DOMAIN][entry_id]["storage"]
+        coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+
+        # Get all chores
+        chores = storage.get_chores()
+        today = date.today()
+        updated_count = 0
+
+        for chore_id, chore in chores.items():
+            if chore.due_date is None:
+                continue
+            
+            try:
+                due_date = date.fromisoformat(chore.due_date)
+                old_status = chore.status
+                
+                # Update status based on due date
+                if due_date < today:
+                    chore.status = CHORE_STATE_OVERDUE
+                elif due_date == today:
+                    chore.status = CHORE_STATE_PENDING
+                else:
+                    chore.status = CHORE_STATE_COMPLETED
+                
+                # Only update if status changed
+                if old_status != chore.status:
+                    storage.update_chore(chore_id, chore)
+                    updated_count += 1
+                    LOGGER.debug(
+                        f"Chore '{chore.name}' status updated from {old_status} to {chore.status}"
+                    )
+            except (ValueError, TypeError):
+                LOGGER.warning(f"Invalid due_date for chore '{chore.name}': {chore.due_date}")
+                continue
+
+        # Save and refresh if any changes were made
+        if updated_count > 0:
+            await storage.async_save()
+            coordinator.async_set_updated_data(storage.data)
+            LOGGER.info(f"Updated {updated_count} chore(s) status based on due dates")
+        else:
+            LOGGER.debug("No chore status updates needed")
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -178,7 +226,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=TOGGLE_CHORE_SCHEMA,
     )
 
-    LOGGER.debug("Services registered: update_points, reset_points, toggle_chore")
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_CHORES,
+        handle_update_chores,
+    )
+
+    LOGGER.debug("Services registered: update_points, reset_points, toggle_chore, update_chores")
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -186,4 +240,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_POINTS)
     hass.services.async_remove(DOMAIN, SERVICE_RESET_POINTS)
     hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_CHORE)
+    hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CHORES)
     LOGGER.debug("Services unloaded")

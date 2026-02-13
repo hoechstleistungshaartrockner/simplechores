@@ -207,18 +207,21 @@ decluttering_templates:
             - user: '[[user]]'
             - state: overdue
             - icon: mdi:clipboard-alert
+            - number: sensor.[[user]]_chores_overdue
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
             - user: '[[user]]'
             - state: pending
             - icon: mdi:clipboard-list
+            - number: sensor.[[user]]_chores_pending
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
             - user: '[[user]]'
             - state: completed
             - icon: mdi:clipboard-check
+            - number: sensor.[[user]]_chores_pending
   chore_state_section:
     card:
       type: vertical-stack
@@ -226,15 +229,19 @@ decluttering_templates:
         - type: custom:bubble-card
           card_type: separator
           name: '[[state]]'
-          sub_button:
-            main: []
-            bottom: []
           icon: '[[icon]]'
+          sub_button:
+            main:
+              - show_icon: false
+                show_name: false
+                entity: '[[number]]'
+                show_state: true
+            bottom: []
         - type: custom:auto-entities
           card:
             type: grid
             square: false
-            columns: 2
+            columns: 1
           card_param: cards
           filter:
             include:
@@ -245,114 +252,99 @@ decluttering_templates:
                   assigned_to: '[[user]]'
                 options:
                   type: custom:decluttering-card
-                  template: chore_button
+                  template: chore_button2
                   variables:
                     - entity: this.entity_id
-  chore_button:
+                    - member: '[[user]]'
+  chore_button2:
     card:
       type: custom:button-card
       entity: '[[entity]]'
+      name: >
+        [[[  const full = entity.attributes.friendly_name || entity.entity_id;
+        const parts = full.split(" "); parts.pop(); return '<marquee
+        behavior="alternate" scrollamount=1>' + parts.join(" ") + '</marquee>'
+        ]]]
+      icon: |
+        [[[
+          if (entity.state === 'completed') return 'mdi:checkbox-marked-outline';
+          if (entity.state === 'pending') return 'mdi:checkbox-blank-outline';
+          if (entity.state === 'overdue') return 'mdi:alert-decagram';
+          return 'mdi:help-circle-outline';
+        ]]]
+      show_icon: true
       show_name: true
-      show_label: true
-      show_state: false
       styles:
-        grid:
-          - grid-template-areas: '"area icon1" "n n" "l l"'
-          - grid-template-rows: 18px 1fr 24px
-          - grid-template-columns: 60% 40%
         card:
-          - height: 100%
-          - padding: 1rem
+          - padding: 3px 5px
           - background: |
               [[[
                 if (entity.state === 'pending') return "#215E61";
                 if (entity.state === 'overdue') return "#820300";
                 return "rgba(255, 255, 255, 0.1)";
               ]]]
+          - border-radius: 30px
+          - height: 60px
+          - display: flex
+          - align-items: center
+        grid:
+          - grid-template-areas: '"i n" "i info"'
+          - grid-template-columns: min-content 1fr
+          - grid-template-rows: auto auto
+          - align-items: center
+        img_cell:
+          - width: 50px
+          - height: 50px
+          - border-radius: 50%
+          - justify-self: center
+          - align-self: center
+          - background: rgba(0, 0, 0, 0.3)
+        icon:
+          - width: 28px
+          - height: 28px
+          - color: white
         name:
-          - text-align: left
-          - font-size: 18px
-          - font-weight: 500
+          - grid-area: 'n'
           - justify-self: start
           - align-self: end
-          - color: white
-        label:
-          - text-align: left
-          - font-size: 12px
-          - opacity: 0.7
-          - justify-self: start
-          - align-self: center
+          - font-size: 18px
+          - font-weight: 600
+          - padding-left: 10px
           - color: white
         custom_fields:
-          area:
+          info:
+            - grid-area: info
             - justify-self: start
             - align-self: start
+            - padding-left: 10px
             - font-size: 14px
             - font-weight: 500
-          icon1:
-            - justify-self: end
-            - width: 28px
             - color: white
-      name: |
-        [[[
-          const full = entity.attributes.friendly_name || entity.entity_id;
-          const parts = full.split(" ");
-          parts.pop();
-          return parts.join(" ");
-        ]]]
-      label: |
-        [[[
-          if (entity.state === 'overdue') {
-            return entity.attributes.due_in_days + " days overdue";
-          }
-          if (entity.state === 'completed') {
-            return `Due in ${entity.attributes.due_in_days} days`;
-          }
-          return entity.state + " ...";
-        ]]]
       custom_fields:
-        area: |
+        info: |
           [[[
-            return entity.attributes.area_name
-          ]]]
-        icon1:
-          card:
-            type: custom:button-card
-            icon: |
-              [[[
-                if (entity.state === 'completed') return 'mdi:checkbox-marked-outline';
-                if (entity.state === 'pending') return 'mdi:checkbox-blank-outline';
-                if (entity.state === 'overdue') return 'mdi:alert-decagram';
-                return 'mdi:help-circle-outline';
-              ]]]
-            hold_action:
-              action: more-info
-              entity: |
-                [[[
-                  const related = entity.attributes.related_entities || {};
-                  return related.mark_completed_by;
-                ]]]
-            tap_action:
-              action: call-service
-              service: simplechores.toggle_chore
-              service_data:
-                member: |
-                  [[[
-                    return hass.user.name;
-                  ]]]
-                entity_id: '[[entity]]'
-            styles:
-              card:
-                - background-color: rgba(255, 255, 255, 0.1)
-                - width: 36px
-                - height: 36px
-              icon:
-                - width: 24px
-                - color: rgba(255, 255, 255, 0.8)
+            const area = entity.attributes.area_name || "";
+            const rel = entity.attributes.related_entities || {};
 
-      hold_action:
-        action: more-info
-  
+            const days = entity.attributes.due_in_days;
+
+            let extra = "";
+
+            if (entity.state === "pending") {
+              extra = "due today";
+            }
+            else if (entity.state === "completed") {
+              if (days !== undefined) extra = `due in ${days} days`;
+            }
+            else if (entity.state === "overdue") {
+              const overdue = -days;
+              extra = `${overdue} days overdue`;
+            }
+
+            if (area && extra) return `${area} · ${extra}`;
+            if (area) return area;
+            return extra;
+          ]]]
       tap_action:
         action: call-service
         service: simplechores.toggle_chore
@@ -362,8 +354,12 @@ decluttering_templates:
               return hass.user.name;
             ]]]
           entity_id: '[[entity]]'
-
-
+      hold_action:
+        action: navigate
+        navigation_path: |
+          [[[
+            return "/config/devices/device/" + entity.attributes.device_id;
+          ]]]
 views:
   - path: choochoo
     title: chores
@@ -430,6 +426,14 @@ views:
                 %}
                 **{{ loop.index }}. {{ member | capitalize }}** — {{ item.value }} {{ unit }}
               {% endfor %}
-
+          - show_name: true
+            show_icon: true
+            type: button
+            entity: ''
+            name: update chores
+            tap_action:
+              action: perform-action
+              perform_action: simplechores.update_chores
+              target: {}
 
 ```

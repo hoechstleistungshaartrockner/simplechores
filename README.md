@@ -145,7 +145,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
-    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+    - `related_entities`: dictionary of related entity IDs for this chore
 
 - `select.{chore_id}_mark_completed_by`
   - State: null (this is an action trigger entity)
@@ -155,7 +155,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
-    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+    - `related_entities`: dictionary of related entity IDs for this chore
 
 - `number.{chore_id}_points`
   - State: numeric value representing points awarded for completing this chore
@@ -164,7 +164,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
-    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+    - `related_entities`: dictionary of related entity IDs for this chore
 
 - `sensor.{chore_id}_days_overdue`
   - State: numeric value representing days overdue (0 if not overdue)
@@ -176,7 +176,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `status`: current status (pending/completed/overdue)
     - `next_due`: ISO date string of next due date
     - `assigned_to`: member name the chore is assigned to (if any)
-    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+    - `related_entities`: dictionary of related entity IDs for this chore
 
 - `sensor.{chore_id}_next_due`
   - State: ISO date string of next due date
@@ -190,7 +190,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `recurrence_interval`: interval for recurrence (numeric)
     - `last_completed`: ISO date string of when chore was last completed
     - `due_in_days`: number of days until due (can be negative if overdue)
-    - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
+    - `related_entities`: dictionary of related entity IDs for this chore
 
 ## Example Dashboard Configuration
 

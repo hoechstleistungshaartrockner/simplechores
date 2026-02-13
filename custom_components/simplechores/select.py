@@ -65,15 +65,15 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         self._entry = entry
         self._attr_has_entity_name = True
         self._attr_name = "Assigned to"
-        self._attr_unique_id = f"{DOMAIN}_{chore_id}_assignee"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_assigned_to"
         self._attr_icon = "mdi:account-arrow-right"
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""
         return {
             "status": f"select.{self.chore_id}_status",
-            "assigned_to": f"select.{self.chore_id}_assignee",
-            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "assigned_to": f"select.{self.chore_id}_assigned_to",
+            "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
             "days_overdue": f"sensor.{self.chore_id}_days_overdue",
             "next_due": f"sensor.{self.chore_id}_next_due",
@@ -197,15 +197,15 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         self._entry = entry
         self._attr_has_entity_name = True
         self._attr_name = "Mark completed by"
-        self._attr_unique_id = f"{DOMAIN}_{chore_id}_completed_by"
+        self._attr_unique_id = f"{DOMAIN}_{chore_id}_mark_completed_by"
         self._attr_icon = "mdi:account-check"
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""
         return {
             "status": f"select.{self.chore_id}_status",
-            "assigned_to": f"select.{self.chore_id}_assignee",
-            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "assigned_to": f"select.{self.chore_id}_assigned_to",
+            "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
             "days_overdue": f"sensor.{self.chore_id}_days_overdue",
             "next_due": f"sensor.{self.chore_id}_next_due",
@@ -324,8 +324,8 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         """Get all related entity IDs for this chore."""
         return {
             "status": f"select.{self.chore_id}_status",
-            "assigned_to": f"select.{self.chore_id}_assignee",
-            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "assigned_to": f"select.{self.chore_id}_assigned_to",
+            "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
             "days_overdue": f"sensor.{self.chore_id}_days_overdue",
             "next_due": f"sensor.{self.chore_id}_next_due",

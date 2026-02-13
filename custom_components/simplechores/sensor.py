@@ -362,8 +362,8 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
         """Get all related entity IDs for this chore."""
         return {
             "status": f"select.{self.chore_id}_status",
-            "assigned_to": f"select.{self.chore_id}_assignee",
-            "mark_completed_by": f"select.{self.chore_id}_completed_by",
+            "assigned_to": f"select.{self.chore_id}_assigned_to",
+            "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
             "days_overdue": f"sensor.{self.chore_id}_days_overdue",
             "next_due": f"sensor.{self.chore_id}_next_due",

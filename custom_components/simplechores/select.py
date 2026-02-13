@@ -434,10 +434,8 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         # Update chore status based on selection
         if option == CHORE_STATE_PENDING:
             chore.mark_pending()
-            chore.due_date = date.today().isoformat()
         elif option == CHORE_STATE_OVERDUE:
             chore.mark_overdue()
-            chore.due_date = (date.today() - timedelta(days=1)).isoformat()
         elif option == CHORE_STATE_COMPLETED:
             # When marking as completed manually, use the assigned member if available
             # Otherwise, don't award points to anyone

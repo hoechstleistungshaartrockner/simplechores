@@ -129,10 +129,12 @@ class Chore:
     def mark_pending(self) -> None:
         """Mark the chore as pending."""
         self.status = CHORE_STATE_PENDING
+        self.due_date = date.today().isoformat()
     
     def mark_overdue(self) -> None:
         """Mark the chore as overdue."""
         self.status = CHORE_STATE_OVERDUE
+        self.due_date = (date.today() - timedelta(days=1)).isoformat()
     
     def assign_to_member(self, member_name: str) -> None:
         """Assign this chore to a specific member."""

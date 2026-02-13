@@ -17,6 +17,7 @@ PLATFORMS = [
     Platform.SENSOR,
     Platform.SELECT,
     Platform.NUMBER,
+    Platform.DATE,
     ]
 
 # Storage and Versioning

@@ -1,7 +1,7 @@
 """Select platform for SimpleChores."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -75,8 +75,7 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
             "assigned_to": f"select.{self.chore_id}_assigned_to",
             "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
-            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
-            "next_due": f"sensor.{self.chore_id}_next_due",
+            "due_date": f"date.{self.chore_id}_due_date",
         }
 
     def _get_device_id(self) -> str | None:
@@ -172,8 +171,8 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
         
-        # Refresh coordinator to update all entities
-        await self.coordinator.async_request_refresh()
+        # Force immediate coordinator refresh to update all entities
+        await self.coordinator.async_refresh()
         
         LOGGER.info(
             f"Chore '{self.chore_name}' assigned to {option}"
@@ -207,8 +206,7 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
             "assigned_to": f"select.{self.chore_id}_assigned_to",
             "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
-            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
-            "next_due": f"sensor.{self.chore_id}_next_due",
+            "due_date": f"date.{self.chore_id}_due_date",
         }
 
     def _get_device_id(self) -> str | None:
@@ -292,8 +290,8 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
         
-        # Refresh coordinator to update all entities
-        await self.coordinator.async_request_refresh()
+        # Force immediate coordinator refresh to update all entities
+        await self.coordinator.async_refresh()
         
         LOGGER.info(
             f"Chore '{self.chore_name}' marked as completed by {option}"
@@ -327,8 +325,7 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
             "assigned_to": f"select.{self.chore_id}_assigned_to",
             "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
-            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
-            "next_due": f"sensor.{self.chore_id}_next_due",
+            "due_date": f"date.{self.chore_id}_due_date",
         }
 
     def _get_device_id(self) -> str | None:
@@ -391,15 +388,15 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
             if chore.assigned_to:
                 attrs["assigned_to"] = chore.assigned_to
             
-            # Add next_due attribute
-            if chore.next_due:
-                attrs["next_due"] = chore.next_due
+            # Add due_date attribute
+            if chore.due_date:
+                attrs["due_date"] = chore.due_date
                 
                 # Calculate and add due_in_days
                 try:
-                    next_due_date = date.fromisoformat(chore.next_due)
+                    due_date = date.fromisoformat(chore.due_date)
                     today = date.today()
-                    due_in_days = (next_due_date - today).days
+                    due_in_days = (due_date - today).days
                     attrs["due_in_days"] = due_in_days
                 except (ValueError, TypeError):
                     pass
@@ -437,8 +434,10 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         # Update chore status based on selection
         if option == CHORE_STATE_PENDING:
             chore.mark_pending()
+            chore.due_date = date.today().isoformat()
         elif option == CHORE_STATE_OVERDUE:
             chore.mark_overdue()
+            chore.due_date = (date.today() - timedelta(days=1)).isoformat()
         elif option == CHORE_STATE_COMPLETED:
             # When marking as completed manually, use the assigned member if available
             # Otherwise, don't award points to anyone
@@ -447,14 +446,13 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
             else:
                 chore.status = CHORE_STATE_COMPLETED
                 chore.last_completed = date.today().isoformat()
-                chore.days_overdue = 0
         
         # Update storage
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
         
-        # Refresh coordinator to update all entities
-        await self.coordinator.async_request_refresh()
+        # Force immediate coordinator refresh to update all entities
+        await self.coordinator.async_refresh()
         
         LOGGER.info(
             f"Chore '{self.chore_name}' status updated to {option}"

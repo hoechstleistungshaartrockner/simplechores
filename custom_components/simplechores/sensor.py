@@ -82,11 +82,6 @@ async def async_setup_entry(
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
         entities.append(MemberOverdueChoresSensor(coordinator, entry, member_name))
         entities.append(MemberAssignedChoreEntitiesSensor(coordinator, entry, member_name))
-    
-    # Chore sensors
-    for chore_id, chore in chores.items():
-        entities.append(ChoreDaysOverdueSensor(coordinator, entry, chore_id, chore.name))
-        entities.append(ChoreNextDueSensor(coordinator, entry, chore_id, chore.name))
 
     async_add_entities(entities)
 
@@ -365,8 +360,7 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
             "assigned_to": f"select.{self.chore_id}_assigned_to",
             "mark_completed_by": f"select.{self.chore_id}_mark_completed_by",
             "points": f"number.{self.chore_id}_points",
-            "days_overdue": f"sensor.{self.chore_id}_days_overdue",
-            "next_due": f"sensor.{self.chore_id}_next_due",
+            "due_date": f"date.{self.chore_id}_due_date",
         }
     
     def _get_device_id(self) -> str | None:
@@ -391,99 +385,4 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
         device_id = self._get_device_id()
         if device_id:
             attrs["device_id"] = device_id
-        return attrs
-
-
-class ChoreDaysOverdueSensor(SimpleChoresChoreBaseSensor):
-    """Sensor for tracking days overdue."""
-
-    def __init__(
-        self,
-        coordinator: SimpleChoresCoordinator,
-        entry: ConfigEntry,
-        chore_id: str,
-        chore_name: str,
-    ) -> None:
-        """Initialize the days overdue sensor."""
-        super().__init__(coordinator, entry, chore_id, chore_name)
-        self._attr_name = "Days overdue"
-        self._attr_unique_id = f"{DOMAIN}_{chore_id}_days_overdue"
-        self._attr_icon = "mdi:calendar-alert"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_native_unit_of_measurement = "days"
-
-    @property
-    def native_value(self) -> int:
-        """Return days overdue."""
-        chore = self.coordinator.storage.get_chore(self.chore_id)
-        if chore is None:
-            return 0
-        return chore.days_overdue
-
-    @property
-    def extra_state_attributes(self) -> dict[str, any]:
-        """Return extra state attributes."""
-        attrs = super().extra_state_attributes
-        chore = self.coordinator.storage.get_chore(self.chore_id)
-        if chore:
-            attrs.update({
-                "status": chore.status,
-                "next_due": chore.next_due,
-                "assigned_to": chore.assigned_to,
-            })
-        return attrs
-
-
-class ChoreNextDueSensor(SimpleChoresChoreBaseSensor):
-    """Sensor for tracking next due date."""
-
-    def __init__(
-        self,
-        coordinator: SimpleChoresCoordinator,
-        entry: ConfigEntry,
-        chore_id: str,
-        chore_name: str,
-    ) -> None:
-        """Initialize the next due sensor."""
-        super().__init__(coordinator, entry, chore_id, chore_name)
-        self._attr_name = "Next due"
-        self._attr_unique_id = f"{DOMAIN}_{chore_id}_next_due"
-        self._attr_icon = "mdi:calendar-clock"
-        self._attr_device_class = SensorDeviceClass.DATE
-
-    @property
-    def native_value(self) -> date | None:
-        """Return next due date."""
-        chore = self.coordinator.storage.get_chore(self.chore_id)
-        if chore is None or chore.next_due is None:
-            return None
-        
-        # Convert ISO string to date object
-        try:
-            return date.fromisoformat(chore.next_due)
-        except (ValueError, TypeError):
-            return None
-
-    @property
-    def extra_state_attributes(self) -> dict[str, any]:
-        """Return extra state attributes."""
-        attrs = super().extra_state_attributes
-        chore = self.coordinator.storage.get_chore(self.chore_id)
-        if chore:
-            # Calculate days until due
-            due_in_days = None
-            if chore.next_due:
-                try:
-                    next_due_date = date.fromisoformat(chore.next_due)
-                    today = date.today()
-                    due_in_days = (next_due_date - today).days
-                except (ValueError, TypeError):
-                    pass
-            
-            attrs.update({
-                "recurrence_pattern": chore.recurrence_pattern,
-                "recurrence_interval": chore.recurrence_interval,
-                "last_completed": chore.last_completed,
-                "due_in_days": due_in_days,
-            })
         return attrs

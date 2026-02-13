@@ -788,7 +788,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 chore.assigned_to = random.choice(assignees)
             
             # Set the first due date to today
-            chore.next_due = date.today().isoformat()
+            chore.due_date = date.today().isoformat()
             
             # Add to storage
             storage.add_chore(chore_id, chore)

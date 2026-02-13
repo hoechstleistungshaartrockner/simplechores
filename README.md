@@ -132,7 +132,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `assigned_to`: member name the chore is assigned to (if any)
-    - `next_due`: ISO date string of next due date
+    - `due_date`: ISO date string of next due date
     - `due_in_days`: number of days until due (can be negative if overdue)
     - `area_id`: Home Assistant area ID (UUID) if chore is assigned to an area
     - `area_name`: human-readable area name (e.g., "Living Room") if chore is assigned to an area
@@ -166,21 +166,9 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `chore_name`: display name of the chore
     - `related_entities`: dictionary of related entity IDs for this chore
 
-- `sensor.{chore_id}_days_overdue`
-  - State: numeric value representing days overdue (0 if not overdue)
-  - Attributes:
-    - `integration`: "simplechores"
-    - `device_id`: Home Assistant device ID for the chore device
-    - `chore_id`: unique identifier for the chore
-    - `chore_name`: display name of the chore
-    - `status`: current status (pending/completed/overdue)
-    - `next_due`: ISO date string of next due date
-    - `assigned_to`: member name the chore is assigned to (if any)
-    - `related_entities`: dictionary of related entity IDs for this chore
-
-- `sensor.{chore_id}_next_due`
-  - State: ISO date string of next due date
-  - Device Class: date
+- `date.{chore_id}_due_date`
+  - State: date value of next due date (user-adjustable)
+  - Purpose: Allows users to manually set/adjust the next due date for the chore
   - Attributes:
     - `integration`: "simplechores"
     - `device_id`: Home Assistant device ID for the chore device
@@ -190,6 +178,8 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `recurrence_interval`: interval for recurrence (numeric)
     - `last_completed`: ISO date string of when chore was last completed
     - `due_in_days`: number of days until due (can be negative if overdue)
+    - `status`: current status (pending/completed/overdue)
+    - `assigned_to`: member name the chore is assigned to (if any)
     - `related_entities`: dictionary of related entity IDs for this chore
 
 ## Example Dashboard Configuration
@@ -312,11 +302,8 @@ decluttering_templates:
         ]]]
       label: |
         [[[
-          const related = entity.attributes.related_entities || {};
-          const overdueId = related.days_overdue;
-          const overdue = states[overdueId];
-          if (entity.state === 'overdue' && overdue) {
-            return overdue.state + " days overdue";
+          if (entity.state === 'overdue') {
+            return entity.attributes.due_in_days + " days overdue";
           }
           if (entity.state === 'completed') {
             return `Due in ${entity.attributes.due_in_days} days`;

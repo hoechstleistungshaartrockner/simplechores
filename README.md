@@ -46,24 +46,28 @@ Member names are sanitized (lowercased, spaces replaced with underscores) for us
   - Unit: configurable points label (default: "points")
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_points_earned_this_week`
   - State: numeric value, total points earned this week (starting Monday)
   - Unit: configurable points label (default: "points")
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_points_earned_this_month`
   - State: numeric value, total points earned this month
   - Unit: configurable points label (default: "points")
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_points_earned_this_year`
   - State: numeric value, total points earned this year
   - Unit: configurable points label (default: "points")
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 **Chore Completion Tracking Sensors** (tracks number of chores completed):
 - `sensor.{member_name}_chores_completed_today`
@@ -71,24 +75,28 @@ Member names are sanitized (lowercased, spaces replaced with underscores) for us
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_chores_completed_this_week`
   - State: numeric value, number of chores completed this week
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_chores_completed_this_month`
   - State: numeric value, number of chores completed this month
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_chores_completed_this_year`
   - State: numeric value, number of chores completed this year
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 **Status Sensors** (current state):
 - `sensor.{member_name}_chores_pending`
@@ -96,17 +104,20 @@ Member names are sanitized (lowercased, spaces replaced with underscores) for us
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_chores_overdue`
   - State: numeric value, number of overdue chores currently assigned to member
   - Unit: "chores"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
 
 - `sensor.{member_name}_assigned_chore_entities`
   - State: numeric value, total count of chores assigned to member
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the member device
     - `entity_ids`: list of status entity IDs for all chores assigned to this member (useful for automations and dashboard filtering)
 
 ### Chore Entities
@@ -117,6 +128,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - State: "pending", "completed", or "overdue"
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `assigned_to`: member name the chore is assigned to (if any)
@@ -130,6 +142,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - State: name of the member assigned to the chore
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
@@ -139,6 +152,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - Purpose: Select a member to mark the chore as completed by that member (awards points and updates counters)
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
@@ -147,6 +161,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - State: numeric value representing points awarded for completing this chore
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `related_entities`: dictionary of related entity IDs for this chore (note: the source code has bugs in this dictionary - it lists `assignee` and `completed_by` instead of the correct `assigned_to` and `mark_completed_by`)
@@ -155,6 +170,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - State: numeric value representing days overdue (0 if not overdue)
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `status`: current status (pending/completed/overdue)
@@ -167,6 +183,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
   - Device Class: date
   - Attributes:
     - `integration`: "simplechores"
+    - `device_id`: Home Assistant device ID for the chore device
     - `chore_id`: unique identifier for the chore
     - `chore_name`: display name of the chore
     - `recurrence_pattern`: pattern for chore recurrence (e.g., "daily", "weekly")

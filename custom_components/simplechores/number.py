@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     DOMAIN,
@@ -78,6 +79,16 @@ class ChorePointsNumber(CoordinatorEntity, NumberEntity):
             "next_due": f"sensor.{self.chore_id}_next_due",
         }
 
+    def _get_device_id(self) -> str | None:
+        """Get the device_id for this entity's device."""
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get_device(
+            identifiers={(DOMAIN, f"chore_{self.chore_id}")}
+        )
+        if device:
+            return device.id
+        return None
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this chore."""
@@ -115,12 +126,16 @@ class ChorePointsNumber(CoordinatorEntity, NumberEntity):
     @property
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""
-        return {
+        attrs = {
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
             "related_entities": self._get_related_entity_ids(),
         }
+        device_id = self._get_device_id()
+        if device_id:
+            attrs["device_id"] = device_id
+        return attrs
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the points value."""

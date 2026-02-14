@@ -354,18 +354,20 @@ class Chore:
         if self.recurrence_annual_month is None or self.recurrence_annual_day is None:
             self.due_date = (from_date + timedelta(days=365)).isoformat()
             return
-        
-        # Try next occurrence this year
-        try:
-            due_date = date(from_date.year, self.recurrence_annual_month, self.recurrence_annual_day)
-            if due_date <= from_date:
-                # Already passed this year, use next year
-                due_date = date(from_date.year + 1, self.recurrence_annual_month, self.recurrence_annual_day)
-        except ValueError:
-            # Invalid date (e.g., Feb 30), default to next year same day
-            due_date = from_date.replace(year=from_date.year + 1)
-        
-        self.due_date = due_date.isoformat()
+
+        # Find the next valid occurrence strictly after from_date.
+        # This naturally handles Feb 29 by selecting the next leap year.
+        for year in range(from_date.year, from_date.year + 9):
+            try:
+                candidate = date(year, self.recurrence_annual_month, self.recurrence_annual_day)
+            except ValueError:
+                continue
+
+            if candidate > from_date:
+                self.due_date = candidate.isoformat()
+                return
+
+        self.due_date = (from_date + timedelta(days=365)).isoformat()
     
     
         

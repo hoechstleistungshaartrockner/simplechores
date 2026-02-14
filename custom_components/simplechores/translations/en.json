@@ -247,7 +247,7 @@
         },
         "data_description": {
           "recurrence_annual_month": "Which month",
-          "recurrence_annual_day": "Which day of the month (1-31)"
+          "recurrence_annual_day": "Day of month (validated for selected month; Feb 29 repeats on leap years)"
         }
       },
       "edit_chore": {
@@ -341,7 +341,7 @@
         },
         "data_description": {
           "recurrence_annual_month": "Which month",
-          "recurrence_annual_day": "Which day of the month (1-31)"
+          "recurrence_annual_day": "Day of month (validated for selected month; Feb 29 repeats on leap years)"
         }
       },
       "delete_chore": {
@@ -373,7 +373,8 @@
       "rotate_random_two_people": "Assignment modes 'Rotate' and 'Random' require at least two people to be selected",
       "invalid_monthly_day": "Enter a value from 1 to 31 or -1 to -31 (0 is not allowed)",
       "select_at_least_one_week": "Select at least one week of the month",
-      "select_at_least_one_weekday": "Select at least one weekday"
+      "select_at_least_one_weekday": "Select at least one weekday",
+      "invalid_annual_day": "Selected day is not valid for that month"
     }
   },
   "errors": {

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from typing import Any, Optional
+import calendar
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
@@ -739,6 +740,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_chore_annual(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Shared step for annual recurrence configuration (add/edit)."""
+        errors = {}
         # Get defaults
         default_month = 1
         default_day = 1
@@ -752,9 +754,21 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 default_day = chore.recurrence_annual_day or 1
         
         if user_input is not None:
-            self._chore_data[CONF_RECURRENCE_ANNUAL_MONTH] = user_input.get(CONF_RECURRENCE_ANNUAL_MONTH, 1)
-            self._chore_data[CONF_RECURRENCE_ANNUAL_DAY] = user_input.get(CONF_RECURRENCE_ANNUAL_DAY, 1)
-            return await self.async_step_chore_finalize()
+            selected_month = int(user_input.get(CONF_RECURRENCE_ANNUAL_MONTH, 1))
+            annual_day_raw = user_input.get(CONF_RECURRENCE_ANNUAL_DAY, 1)
+
+            try:
+                selected_day = int(annual_day_raw)
+            except (TypeError, ValueError):
+                errors[CONF_RECURRENCE_ANNUAL_DAY] = "invalid_annual_day"
+            else:
+                max_day_for_month = calendar.monthrange(2024, selected_month)[1]
+                if selected_day < 1 or selected_day > max_day_for_month:
+                    errors[CONF_RECURRENCE_ANNUAL_DAY] = "invalid_annual_day"
+                else:
+                    self._chore_data[CONF_RECURRENCE_ANNUAL_MONTH] = selected_month
+                    self._chore_data[CONF_RECURRENCE_ANNUAL_DAY] = selected_day
+                    return await self.async_step_chore_finalize()
         
         schema = vol.Schema({
             vol.Required(CONF_RECURRENCE_ANNUAL_MONTH, default=default_month): vol.In({
@@ -762,8 +776,13 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 5: "May", 6: "June", 7: "July", 8: "August",
                 9: "September", 10: "October", 11: "November", 12: "December",
             }),
-            vol.Required(CONF_RECURRENCE_ANNUAL_DAY, default=default_day): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=31)
+            vol.Required(CONF_RECURRENCE_ANNUAL_DAY, default=default_day): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=31,
+                    step=1,
+                    mode="box",
+                )
             ),
         })
         
@@ -771,6 +790,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=step_id,
             data_schema=schema,
+            errors=errors,
         )
 
     async def async_step_add_chore_annual(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:

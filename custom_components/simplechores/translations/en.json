@@ -213,7 +213,7 @@
           "recurrence_day_of_month": "Day of month"
         },
         "data_description": {
-          "recurrence_day_of_month": "Day number (1-31, or -1 for last day of month)"
+          "recurrence_day_of_month": "Day number (1-31) or negative day from the end (-1 to -31)"
         }
       },
       "add_chore_monthly_weekday": {
@@ -307,7 +307,7 @@
           "recurrence_day_of_month": "Day of month"
         },
         "data_description": {
-          "recurrence_day_of_month": "Day number (1-31, or -1 for last day of month)"
+          "recurrence_day_of_month": "Day number (1-31) or negative day from the end (-1 to -31)"
         }
       },
       "edit_chore_monthly_weekday": {
@@ -370,7 +370,8 @@
       "cannot_delete_last_member": "Cannot delete the last member. At least one member must remain.",
       "not_implemented": "This feature is not yet implemented",
       "always_mode_one_person": "Assignment mode 'Always' requires exactly one person to be selected",
-      "rotate_random_two_people": "Assignment modes 'Rotate' and 'Random' require at least two people to be selected"
+      "rotate_random_two_people": "Assignment modes 'Rotate' and 'Random' require at least two people to be selected",
+      "invalid_monthly_day": "Enter a value from 1 to 31 or -1 to -31 (0 is not allowed)"
     }
   },
   "errors": {

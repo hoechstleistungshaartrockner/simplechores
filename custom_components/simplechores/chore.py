@@ -5,6 +5,7 @@ from dataclasses import dataclass, asdict, field
 from typing import Dict, List
 from datetime import datetime, date, timedelta
 import random
+import calendar
 
 from .const import (
     CHORE_STATE_PENDING,
@@ -240,38 +241,39 @@ class Chore:
         if self.recurrence_day_of_month is None:
             self.due_date = (from_date + timedelta(days=30)).isoformat()
             return
-        
-        # Start with next month
+
+        target_day = self.recurrence_day_of_month
+        if target_day == 0:
+            target_day = 1
+
+        # First, try this month. If the target date is not in the future, use next month.
+        this_month_due = self._resolve_monthly_day_for_month(from_date.year, from_date.month, target_day)
+        if this_month_due > from_date:
+            self.due_date = this_month_due.isoformat()
+            return
+
         if from_date.month == 12:
             next_month = 1
             next_year = from_date.year + 1
         else:
             next_month = from_date.month + 1
             next_year = from_date.year
-        
-        # Handle -1 for last day of month
-        if self.recurrence_day_of_month == -1:
-            # Get last day of next month
-            if next_month == 12:
-                last_day_next_month = date(next_year, next_month, 31)
-            else:
-                # Get first day of month after next, then subtract 1 day
-                first_of_following_month = date(next_year, next_month + 1, 1) if next_month < 12 else date(next_year + 1, 1, 1)
-                last_day_next_month = first_of_following_month - timedelta(days=1)
-            due_date = last_day_next_month
+
+        next_month_due = self._resolve_monthly_day_for_month(next_year, next_month, target_day)
+        self.due_date = next_month_due.isoformat()
+
+    def _resolve_monthly_day_for_month(self, year: int, month: int, target_day: int) -> date:
+        """Resolve configured monthly day into a valid date for a specific month."""
+        days_in_month = calendar.monthrange(year, month)[1]
+
+        if target_day > 0:
+            day = min(target_day, days_in_month)
         else:
-            # Try to create date with specified day
-            try:
-                due_date = date(next_year, next_month, self.recurrence_day_of_month)
-            except ValueError:
-                # Day doesn't exist in this month (e.g., Feb 30), use last day of month
-                if next_month == 12:
-                    first_of_following_month = date(next_year + 1, 1, 1)
-                else:
-                    first_of_following_month = date(next_year, next_month + 1, 1)
-                due_date = first_of_following_month - timedelta(days=1)
-        
-        self.due_date = due_date.isoformat()
+            # Negative values count backward from month end: -1 last day, -2 second-last, etc.
+            day = days_in_month + target_day + 1
+            day = max(1, day)
+
+        return date(year, month, day)
     
     def _schedule_monthly_weekday(self, from_date: date) -> None:
         """Schedule due date on a specific weekday of a specific week in the month."""

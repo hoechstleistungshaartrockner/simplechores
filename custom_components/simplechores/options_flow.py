@@ -47,6 +47,7 @@ import random
 from datetime import date
 
 from homeassistant.helpers import device_registry as dr, area_registry as ar
+from homeassistant.helpers import selector
 
 
 
@@ -587,6 +588,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_chore_monthly_day(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Shared step for monthly day configuration (add/edit)."""
+        errors = {}
         # Get defaults
         default_day = 1
         
@@ -598,12 +600,26 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 default_day = chore.recurrence_day_of_month or 1
         
         if user_input is not None:
-            self._chore_data[CONF_RECURRENCE_DAY_OF_MONTH] = user_input.get(CONF_RECURRENCE_DAY_OF_MONTH, 1)
-            return await self.async_step_chore_finalize()
+            monthly_day_raw = user_input.get(CONF_RECURRENCE_DAY_OF_MONTH, 1)
+            try:
+                monthly_day = int(monthly_day_raw)
+            except (TypeError, ValueError):
+                errors[CONF_RECURRENCE_DAY_OF_MONTH] = "invalid_monthly_day"
+            else:
+                if monthly_day == 0 or monthly_day < -31 or monthly_day > 31:
+                    errors[CONF_RECURRENCE_DAY_OF_MONTH] = "invalid_monthly_day"
+                else:
+                    self._chore_data[CONF_RECURRENCE_DAY_OF_MONTH] = monthly_day
+                    return await self.async_step_chore_finalize()
         
         schema = vol.Schema({
-            vol.Required(CONF_RECURRENCE_DAY_OF_MONTH, default=default_day): vol.All(
-                vol.Coerce(int), vol.Range(min=-1, max=31)
+            vol.Required(CONF_RECURRENCE_DAY_OF_MONTH, default=default_day): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=-31,
+                    max=31,
+                    step=1,
+                    mode="box",
+                )
             ),
         })
         
@@ -611,6 +627,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=step_id,
             data_schema=schema,
+            errors=errors,
         )
 
     async def async_step_add_chore_monthly_day(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:

@@ -669,28 +669,29 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
     async def async_step_chore_specific_days(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Shared step for specific weekdays configuration (add/edit)."""
         # Get defaults
-        default_weekdays = [0]
+        default_weekdays: list[str] = []
         
         if self._chore_mode == "edit" and self._selected_chore:
             storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
             chores = storage.get_chores()
             if self._selected_chore in chores:
                 chore = chores[self._selected_chore]
-                default_weekdays = chore.recurrence_specific_weekdays or [0]
+                default_weekdays = [str(day) for day in (chore.recurrence_specific_weekdays or [])]
         
         if user_input is not None:
-            self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = user_input.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, [0])
+            selected_weekdays = user_input.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, [])
+            self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = [int(day) for day in selected_weekdays]
             return await self.async_step_chore_finalize()
         
         schema = vol.Schema({
             vol.Required(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, default=default_weekdays): cv.multi_select({
-                0: "Monday",
-                1: "Tuesday",
-                2: "Wednesday",
-                3: "Thursday",
-                4: "Friday",
-                5: "Saturday",
-                6: "Sunday",
+                "0": "Monday",
+                "1": "Tuesday",
+                "2": "Wednesday",
+                "3": "Thursday",
+                "4": "Friday",
+                "5": "Saturday",
+                "6": "Sunday",
             }),
         })
         

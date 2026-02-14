@@ -636,40 +636,54 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_chore_monthly_weekday(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:
         """Shared step for monthly weekday configuration (add/edit)."""
+        errors = {}
         # Get defaults
-        default_week = 1
-        default_weekday = 0
+        default_weeks = ["1"]
+        default_weekdays = ["0"]
         
         if self._chore_mode == "edit" and self._selected_chore:
             storage = self.hass.data[DOMAIN][self.config_entry.entry_id]["storage"]
             chores = storage.get_chores()
             if self._selected_chore in chores:
                 chore = chores[self._selected_chore]
-                default_week = chore.recurrence_week_of_month or 1
+                stored_weeks = chore.recurrence_week_of_month
+                if isinstance(stored_weeks, list):
+                    default_weeks = [str(week) for week in stored_weeks] or ["1"]
+                elif stored_weeks is not None:
+                    default_weeks = [str(stored_weeks)]
                 if chore.recurrence_specific_weekdays:
-                    default_weekday = chore.recurrence_specific_weekdays[0]
+                    default_weekdays = [str(day) for day in chore.recurrence_specific_weekdays]
         
         if user_input is not None:
-            self._chore_data[CONF_RECURRENCE_WEEK_OF_MONTH] = user_input.get(CONF_RECURRENCE_WEEK_OF_MONTH, 1)
-            self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = [user_input.get("weekday", 0)]
-            return await self.async_step_chore_finalize()
+            selected_weeks = user_input.get(CONF_RECURRENCE_WEEK_OF_MONTH, [])
+            selected_weekdays = user_input.get("weekday", [])
+
+            if not selected_weeks:
+                errors[CONF_RECURRENCE_WEEK_OF_MONTH] = "select_at_least_one_week"
+            if not selected_weekdays:
+                errors["weekday"] = "select_at_least_one_weekday"
+
+            if not errors:
+                self._chore_data[CONF_RECURRENCE_WEEK_OF_MONTH] = [int(week) for week in selected_weeks]
+                self._chore_data[CONF_RECURRENCE_SPECIFIC_WEEKDAYS] = [int(day) for day in selected_weekdays]
+                return await self.async_step_chore_finalize()
         
         schema = vol.Schema({
-            vol.Required(CONF_RECURRENCE_WEEK_OF_MONTH, default=default_week): vol.In({
-                1: "First",
-                2: "Second",
-                3: "Third",
-                4: "Fourth",
-                -1: "Last",
+            vol.Required(CONF_RECURRENCE_WEEK_OF_MONTH, default=default_weeks): cv.multi_select({
+                "1": "First",
+                "2": "Second",
+                "3": "Third",
+                "4": "Fourth",
+                "-1": "Last",
             }),
-            vol.Required("weekday", default=default_weekday): vol.In({
-                0: "Monday",
-                1: "Tuesday",
-                2: "Wednesday",
-                3: "Thursday",
-                4: "Friday",
-                5: "Saturday",
-                6: "Sunday",
+            vol.Required("weekday", default=default_weekdays): cv.multi_select({
+                "0": "Monday",
+                "1": "Tuesday",
+                "2": "Wednesday",
+                "3": "Thursday",
+                "4": "Friday",
+                "5": "Saturday",
+                "6": "Sunday",
             }),
         })
         
@@ -677,6 +691,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=step_id,
             data_schema=schema,
+            errors=errors,
         )
 
     async def async_step_add_chore_monthly_weekday(self, user_input: Optional[dict[str, Any]] = None) -> FlowResult:

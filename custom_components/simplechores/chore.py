@@ -39,7 +39,7 @@ class Chore:
     recurrence_pattern: str = FREQUENCY_DAILY
     recurrence_interval: int = 1 # e.g., every 1 day, every 2 days, etc.
     recurrence_day_of_month: int | None = None # for monthly recurrence on a specific day of the month (1-31, -1 for last day)
-    recurrence_week_of_month: int | None = None # e.g. last wednesday of the month would be week_of_month=-1 and specific_weekday=2 (0=Monday, 1=Tuesday, etc.)
+    recurrence_week_of_month: int | List[int] | None = None # supports one or more week numbers (1-4, -1 for last)
     recurrence_specific_weekdays: List[int] = field(default_factory=list) # for recurrence on specific weekdays (0=Monday, 1=Tuesday, etc.)
     recurrence_annual_month: int | None = None # for annual recurrence on a specific month (1-12)
     recurrence_annual_day: int | None = None # for annual recurrence on a specific day (1-365, -1 for last day of the year)
@@ -52,6 +52,10 @@ class Chore:
     @classmethod
     def from_dict(cls, data: Dict) -> Chore:
         """Create a Chore instance from a dictionary."""
+        recurrence_week_of_month = data.get("recurrence_week_of_month")
+        if isinstance(recurrence_week_of_month, int):
+            recurrence_week_of_month = [recurrence_week_of_month]
+
         return cls(
             name=data.get("name", ""),
             points=data.get("points", 0),
@@ -64,7 +68,7 @@ class Chore:
             recurrence_pattern=data.get("recurrence_pattern", FREQUENCY_DAILY),
             recurrence_interval=data.get("recurrence_interval", 1),
             recurrence_day_of_month=data.get("recurrence_day_of_month"),
-            recurrence_week_of_month=data.get("recurrence_week_of_month"),
+            recurrence_week_of_month=recurrence_week_of_month,
             recurrence_specific_weekdays=data.get("recurrence_specific_weekdays", []),
             recurrence_annual_month=data.get("recurrence_annual_month"),
             recurrence_annual_day=data.get("recurrence_annual_day"),
@@ -280,44 +284,70 @@ class Chore:
         if self.recurrence_week_of_month is None or not self.recurrence_specific_weekdays:
             self.due_date = (from_date + timedelta(days=30)).isoformat()
             return
-        
-        target_weekday = self.recurrence_specific_weekdays[0]  # Use first weekday in list
-        week_of_month = self.recurrence_week_of_month
-        
-        # Start with next month
-        if from_date.month == 12:
-            next_month = 1
-            next_year = from_date.year + 1
+
+        if isinstance(self.recurrence_week_of_month, list):
+            weeks = self.recurrence_week_of_month
         else:
-            next_month = from_date.month + 1
-            next_year = from_date.year
-        
-        # Find the target weekday occurrence in next month
-        first_of_month = date(next_year, next_month, 1)
+            weeks = [self.recurrence_week_of_month]
+
+        # Search month-by-month for the first candidate after from_date
+        for month_offset in range(0, 24):
+            month = from_date.month + month_offset
+            year = from_date.year + (month - 1) // 12
+            month = ((month - 1) % 12) + 1
+
+            candidates: List[date] = []
+            for week in weeks:
+                if week is None:
+                    continue
+                for weekday in self.recurrence_specific_weekdays:
+                    candidate = self._resolve_monthly_weekday_for_month(year, month, week, weekday)
+                    if candidate is not None and candidate > from_date:
+                        candidates.append(candidate)
+
+            if candidates:
+                self.due_date = min(candidates).isoformat()
+                return
+
+        self.due_date = (from_date + timedelta(days=30)).isoformat()
+
+    def _resolve_monthly_weekday_for_month(
+        self,
+        year: int,
+        month: int,
+        week_of_month: int,
+        target_weekday: int,
+    ) -> date | None:
+        """Resolve one monthly weekday rule into a date for a specific month."""
+        if target_weekday < 0 or target_weekday > 6:
+            return None
+
+        first_of_month = date(year, month, 1)
         first_weekday = first_of_month.weekday()
-        
-        # Calculate days until target weekday
         days_until_target = (target_weekday - first_weekday) % 7
         first_occurrence = first_of_month + timedelta(days=days_until_target)
-        
+
         if week_of_month == -1:
-            # Last occurrence - find all occurrences and pick the last
             current_occurrence = first_occurrence
             last_occurrence = first_occurrence
-            
+
             while True:
                 next_occurrence = current_occurrence + timedelta(weeks=1)
-                if next_occurrence.month != next_month:
+                if next_occurrence.month != month:
                     break
                 last_occurrence = next_occurrence
                 current_occurrence = next_occurrence
-            
-            due_date = last_occurrence
-        else:
-            # Specific week (1-4)
-            due_date = first_occurrence + timedelta(weeks=week_of_month - 1)
-        
-        self.due_date = due_date.isoformat()
+
+            return last_occurrence
+
+        if week_of_month < 1:
+            return None
+
+        occurrence = first_occurrence + timedelta(weeks=week_of_month - 1)
+        if occurrence.month != month:
+            return None
+
+        return occurrence
     
     def _schedule_annual(self, from_date: date) -> None:
         """Schedule due date annually on a specific date."""

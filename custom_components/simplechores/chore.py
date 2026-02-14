@@ -18,7 +18,6 @@ from .const import (
     FREQUENCY_MONTHLY_DAY,
     FREQUENCY_MONTHLY_WEEKDAY,
     FREQUENCY_INTERVAL_DAYS,
-    FREQUENCY_AFTER_COMPLETION_DAYS,
     FREQUENCY_SPECIFIC_DAYS,
     FREQUENCY_ANNUAL,
 )
@@ -178,8 +177,6 @@ class Chore:
             self._schedule_daily(from_date)
         elif self.recurrence_pattern == FREQUENCY_INTERVAL_DAYS:
             self._schedule_interval_days(from_date)
-        elif self.recurrence_pattern == FREQUENCY_AFTER_COMPLETION_DAYS:
-            self._schedule_after_completion_days(from_date)
         elif self.recurrence_pattern == FREQUENCY_SPECIFIC_DAYS:
             self._schedule_specific_days(from_date)
         elif self.recurrence_pattern == FREQUENCY_MONTHLY_DAY:
@@ -211,11 +208,6 @@ class Chore:
             base_date = from_date
         
         due_date = base_date + timedelta(days=self.recurrence_interval)
-        self.due_date = due_date.isoformat()
-    
-    def _schedule_after_completion_days(self, from_date: date) -> None:
-        """Schedule due date X days after completion."""
-        due_date = from_date + timedelta(days=self.recurrence_interval)
         self.due_date = due_date.isoformat()
     
     def _schedule_specific_days(self, from_date: date) -> None:

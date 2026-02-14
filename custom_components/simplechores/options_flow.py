@@ -30,7 +30,6 @@ from .const import (
     FREQUENCY_MONTHLY_DAY,
     FREQUENCY_MONTHLY_WEEKDAY,
     FREQUENCY_INTERVAL_DAYS,
-    FREQUENCY_AFTER_COMPLETION_DAYS,
     FREQUENCY_SPECIFIC_DAYS,
     FREQUENCY_ANNUAL,
     CONF_RECURRENCE_PATTERN,
@@ -518,7 +517,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             self._chore_data[CONF_RECURRENCE_PATTERN] = recurrence_pattern
             
             # Move to interval configuration if pattern requires it
-            if recurrence_pattern in [FREQUENCY_INTERVAL_DAYS, FREQUENCY_AFTER_COMPLETION_DAYS]:
+            if recurrence_pattern == FREQUENCY_INTERVAL_DAYS:
                 return await self.async_step_chore_interval()
             elif recurrence_pattern == FREQUENCY_MONTHLY_DAY:
                 return await self.async_step_chore_monthly_day()
@@ -537,7 +536,6 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 FREQUENCY_NONE: "No recurrence",
                 FREQUENCY_DAILY: "Daily",
                 FREQUENCY_INTERVAL_DAYS: "Every X days",
-                FREQUENCY_AFTER_COMPLETION_DAYS: "X days after completion",
                 FREQUENCY_SPECIFIC_DAYS: "Specific weekdays",
                 FREQUENCY_MONTHLY_DAY: "Monthly (specific day)",
                 FREQUENCY_MONTHLY_WEEKDAY: "Monthly (specific weekday)",

@@ -76,7 +76,7 @@
     }
   },
   "abort": {
-    "already_configured": "Only one instance of SimpleChores is allowed."
+    "single_instance_allowed": "Only one instance of SimpleChores is allowed."
   },
   "options": {
     "step": {

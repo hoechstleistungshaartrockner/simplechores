@@ -19,3 +19,4 @@ www/
 custom_components/hacs/
 custom_components/bubble*/
 bubble_card/
+devcontainer.txt

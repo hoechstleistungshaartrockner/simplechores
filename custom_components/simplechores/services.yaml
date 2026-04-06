@@ -90,3 +90,34 @@ toggle_chore:
 update_chores:
   name: Update chores status
   description: Check all chore due dates and update their statuses accordingly (overdue if past, pending if today, completed if future)
+
+reschedule_chore:
+  name: Reschedule chore
+  description: Change the due date of a chore to a specific date or relative days from now
+  fields:
+    entity_id:
+      name: Entity ID
+      description: Entity ID of the chore status select entity
+      required: true
+      example: "select.simplechores_dishwashing_status"
+      selector:
+        entity:
+          domain: select
+          integration: simplechores
+    due_date:
+      name: Due Date
+      description: Specific due date for the chore (takes precedence over days_from_now)
+      required: false
+      example: "2024-12-25"
+      selector:
+        date:
+    days_from_now:
+      name: Days from now
+      description: Number of days from today to set as due date (1 = tomorrow, 2 = day after, etc.)
+      required: false
+      example: 1
+      selector:
+        number:
+          mode: box
+          min: 0
+          max: 365

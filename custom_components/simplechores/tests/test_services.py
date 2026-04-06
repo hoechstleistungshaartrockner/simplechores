@@ -1,15 +1,18 @@
 """Test SimpleChores services."""
 import pytest
+from datetime import date, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
+from custom_components.simplechores.chore import Chore
 from custom_components.simplechores.const import (
     DOMAIN,
     SERVICE_UPDATE_POINTS,
     SERVICE_RESET_POINTS,
-    PERIOD_DAILY,
-    PERIOD_WEEKLY,
+    SERVICE_RESCHEDULE_CHORE,
+    TRACKER_PERIOD_TODAY,
+    TRACKER_PERIOD_THIS_WEEK,
 )
 
 
@@ -46,7 +49,7 @@ async def test_update_points_specific_periods(hass: HomeAssistant, mock_config_e
     await hass.services.async_call(
         DOMAIN,
         SERVICE_UPDATE_POINTS,
-        {"member": "Bob", "offset": 25, "periods": [PERIOD_DAILY, PERIOD_WEEKLY]},
+        {"member": "Bob", "offset": 25, "periods": [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK]},
         blocking=True,
     )
 
@@ -128,7 +131,7 @@ async def test_reset_points_specific_periods(hass: HomeAssistant, mock_config_en
     await hass.services.async_call(
         DOMAIN,
         SERVICE_RESET_POINTS,
-        {"member": "Bob", "periods": [PERIOD_DAILY]},
+        {"member": "Bob", "periods": [TRACKER_PERIOD_TODAY]},
         blocking=True,
     )
 
@@ -157,3 +160,130 @@ async def test_service_updates_sensors(hass: HomeAssistant, mock_config_entry) -
     state = hass.states.get("sensor.alice_daily_points")
     assert state is not None
     assert state.state == "75"
+
+
+async def test_reschedule_chore_service_exact_date(hass: HomeAssistant, mock_config_entry) -> None:
+    """Test the reschedule_chore service with exact date."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a test chore
+    test_chore = Chore(
+        name="Test Chore",
+        points=10,
+        status="pending",
+        due_date="2024-01-01",  # Past date, so overdue
+    )
+    
+    # Add chore to storage
+    storage = hass.data[DOMAIN][mock_config_entry.entry_id]["storage"]
+    storage.update_chore(test_chore.chore_id, test_chore)
+    
+    # Create the select entity for this chore
+    from custom_components.simplechores.select import ChoreStatusSelect
+    coordinator = hass.data[DOMAIN][mock_config_entry.entry_id]["coordinator"]
+    select_entity = ChoreStatusSelect(coordinator, mock_config_entry, test_chore.chore_id, test_chore.name)
+    
+    # Add the entity to hass
+    await hass.async_add_job(select_entity.async_added_to_hass)
+    await hass.async_block_till_done()
+
+    # Call reschedule_chore service with exact date
+    new_due_date = date.today() + timedelta(days=7)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_RESCHEDULE_CHORE,
+        {"entity_id": f"select.{DOMAIN}_{test_chore.chore_id}_status", "due_date": new_due_date},
+        blocking=True,
+    )
+
+    # Check that chore was rescheduled
+    updated_chore = storage.get_chore(test_chore.chore_id)
+    assert updated_chore.due_date == new_due_date.isoformat()
+    assert updated_chore.status == "completed"  # Future date = completed status
+
+
+async def test_reschedule_chore_service_days_from_now(hass: HomeAssistant, mock_config_entry) -> None:
+    """Test the reschedule_chore service with days_from_now."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a test chore
+    test_chore = Chore(
+        name="Test Chore 2",
+        points=5,
+        status="pending",
+        due_date="2024-01-01",  # Past date, so overdue
+    )
+    
+    # Add chore to storage
+    storage = hass.data[DOMAIN][mock_config_entry.entry_id]["storage"]
+    storage.update_chore(test_chore.chore_id, test_chore)
+    
+    # Create the select entity for this chore
+    from custom_components.simplechores.select import ChoreStatusSelect
+    coordinator = hass.data[DOMAIN][mock_config_entry.entry_id]["coordinator"]
+    select_entity = ChoreStatusSelect(coordinator, mock_config_entry, test_chore.chore_id, test_chore.name)
+    
+    # Add the entity to hass
+    await hass.async_add_job(select_entity.async_added_to_hass)
+    await hass.async_block_till_done()
+
+    # Call reschedule_chore service with days_from_now
+    days_from_now = 3
+    expected_date = date.today() + timedelta(days=days_from_now)
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_RESCHEDULE_CHORE,
+        {"entity_id": f"select.{DOMAIN}_{test_chore.chore_id}_status", "days_from_now": days_from_now},
+        blocking=True,
+    )
+
+    # Check that chore was rescheduled
+    updated_chore = storage.get_chore(test_chore.chore_id)
+    assert updated_chore.due_date == expected_date.isoformat()
+    assert updated_chore.status == "completed"  # Future date = completed status
+
+
+async def test_reschedule_chore_service_default_today(hass: HomeAssistant, mock_config_entry) -> None:
+    """Test the reschedule_chore service with default to today."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a test chore
+    test_chore = Chore(
+        name="Test Chore 3",
+        points=0,
+        status="pending",
+        due_date="2024-01-01",  # Past date, so overdue
+    )
+    
+    # Add chore to storage
+    storage = hass.data[DOMAIN][mock_config_entry.entry_id]["storage"]
+    storage.update_chore(test_chore.chore_id, test_chore)
+    
+    # Create the select entity for this chore
+    from custom_components.simplechores.select import ChoreStatusSelect
+    coordinator = hass.data[DOMAIN][mock_config_entry.entry_id]["coordinator"]
+    select_entity = ChoreStatusSelect(coordinator, mock_config_entry, test_chore.chore_id, test_chore.name)
+    
+    # Add the entity to hass
+    await hass.async_add_job(select_entity.async_added_to_hass)
+    await hass.async_block_till_done()
+
+    # Call reschedule_chore service with no date parameters (should default to today)
+    today = date.today()
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_RESCHEDULE_CHORE,
+        {"entity_id": f"select.{DOMAIN}.{test_chore.chore_id}_status"},
+        blocking=True,
+    )
+
+    # Check that chore was rescheduled to today
+    updated_chore = storage.get_chore(test_chore.chore_id)
+    assert updated_chore.due_date == today.isoformat()
+    assert updated_chore.status == "pending"  # Today = pending status

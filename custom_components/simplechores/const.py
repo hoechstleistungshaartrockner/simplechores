@@ -112,6 +112,7 @@ SERVICE_UPDATE_POINTS = "update_points"
 SERVICE_RESET_POINTS = "reset_points"
 SERVICE_TOGGLE_CHORE = "toggle_chore"
 SERVICE_UPDATE_CHORES = "update_chores"
+SERVICE_RESCHEDULE_CHORE = "reschedule_chore"
 
 # Chore tracker and point tracker Period Types
 TRACKER_PERIOD_TODAY = "today"

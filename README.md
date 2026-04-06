@@ -185,7 +185,7 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
 ## Example Dashboard Configuration
 
 This code snippet demonstrates how to create a chore dashboard using the decluttering-card and auto-entities card. It organizes chores into sections based on their state (overdue, pending, completed) and allows users to toggle chore states directly from the dashboard.
-**You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable.
+**You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable (look out for 'user: test' and 'user: Member 2')
 
 To make this work, you need to install the following HACS plugins:
 
@@ -208,6 +208,7 @@ decluttering_templates:
             - state: overdue
             - icon: mdi:clipboard-alert
             - number: sensor.[[user]]_chores_overdue
+            - sort_reverse: true
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
@@ -215,6 +216,7 @@ decluttering_templates:
             - state: pending
             - icon: mdi:clipboard-list
             - number: sensor.[[user]]_chores_pending
+            - sort_reverse: true
         - type: custom:decluttering-card
           template: chore_state_section
           variables:
@@ -222,6 +224,7 @@ decluttering_templates:
             - state: completed
             - icon: mdi:clipboard-check
             - number: sensor.[[user]]_chores_pending
+            - sort_reverse: false
   chore_state_section:
     card:
       type: vertical-stack
@@ -256,6 +259,10 @@ decluttering_templates:
                   variables:
                     - entity: this.entity_id
                     - member: '[[user]]'
+          sort:
+            method: "attribute"
+            attribute: "due_in_days"
+            reverse: "[[sort_reverse]]"
   chore_button2:
     card:
       type: custom:button-card

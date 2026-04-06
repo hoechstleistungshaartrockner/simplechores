@@ -4,7 +4,7 @@ from __future__ import annotations
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
-from datetime import date
+from datetime import date, timedelta
 
 from .const import (
     DOMAIN,
@@ -13,6 +13,7 @@ from .const import (
     SERVICE_RESET_POINTS,
     SERVICE_TOGGLE_CHORE,
     SERVICE_UPDATE_CHORES,
+    SERVICE_RESCHEDULE_CHORE,
     TRACKER_PERIOD_TODAY,
     TRACKER_PERIOD_THIS_WEEK,
     TRACKER_PERIOD_THIS_MONTH,
@@ -39,6 +40,12 @@ RESET_POINTS_SCHEMA = vol.Schema({
 TOGGLE_CHORE_SCHEMA = vol.Schema({
     vol.Required("entity_id"): cv.entity_id,
     vol.Required("member"): cv.string,
+})
+
+RESCHEDULE_CHORE_SCHEMA = vol.Schema({
+    vol.Required("entity_id"): cv.entity_id,
+    vol.Optional("due_date"): cv.date,
+    vol.Optional("days_from_now"): vol.Coerce(int),
 })
 
 
@@ -204,6 +211,67 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         else:
             LOGGER.debug("No chore status updates needed")
 
+    async def handle_reschedule_chore(call: ServiceCall) -> None:
+        """Handle the reschedule_chore service call."""
+        entity_id = call.data["entity_id"]
+        due_date = call.data.get("due_date")
+        days_from_now = call.data.get("days_from_now")
+
+        # Calculate the target date
+        today = date.today()
+        if due_date is not None:
+            target_date = due_date
+        elif days_from_now is not None:
+            target_date = today + timedelta(days=days_from_now)
+        else:
+            # Default to today if neither is provided
+            target_date = today
+
+        # Get entity state to read chore_id from attributes
+        entity_state = hass.states.get(entity_id)
+        if entity_state is None:
+            LOGGER.error(f"Entity {entity_id} not found")
+            return
+        
+        # Get chore_id from entity attributes
+        chore_id = entity_state.attributes.get("chore_id")
+        if chore_id is None:
+            LOGGER.error(f"Entity {entity_id} does not have a chore_id attribute")
+            return
+
+        # Get the first config entry
+        entry_id = next(iter(hass.data[DOMAIN]))
+        storage = hass.data[DOMAIN][entry_id]["storage"]
+        coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+
+        # Get chore
+        chore = storage.get_chore(chore_id)
+        if chore is None:
+            LOGGER.error(f"Chore '{chore_id}' not found")
+            return
+
+        # Set the new due date
+        chore.due_date = target_date.isoformat()
+        
+        # Update status based on new due date
+        if target_date < today:
+            chore.status = CHORE_STATE_OVERDUE
+        elif target_date == today:
+            chore.status = CHORE_STATE_PENDING
+        else:
+            chore.status = CHORE_STATE_COMPLETED
+
+        # Update chore in storage
+        storage.update_chore(chore_id, chore)
+        
+        # Immediately update coordinator data to refresh UI
+        coordinator.async_set_updated_data(storage.data)
+        
+        # Save to disk in background (don't await to avoid blocking)
+        hass.async_create_task(storage.async_save())
+
+        LOGGER.info(f"Chore '{chore.name}' rescheduled to {target_date.isoformat()}")
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -232,7 +300,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_update_chores,
     )
 
-    LOGGER.debug("Services registered: update_points, reset_points, toggle_chore, update_chores")
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESCHEDULE_CHORE,
+        handle_reschedule_chore,
+        schema=RESCHEDULE_CHORE_SCHEMA,
+    )
+
+    LOGGER.debug("Services registered: update_points, reset_points, toggle_chore, update_chores, reschedule_chore")
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -241,4 +316,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_RESET_POINTS)
     hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_CHORE)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CHORES)
+    hass.services.async_remove(DOMAIN, SERVICE_RESCHEDULE_CHORE)
     LOGGER.debug("Services unloaded")

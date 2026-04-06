@@ -1,6 +1,9 @@
 {
   "title": "SimpleChores",
   "config": {
+    "abort": {
+      "single_instance_allowed": "Only one instance of SimpleChores is allowed."
+    },
     "step": {
       "user": {
         "title": "Welcome to SimpleChores",
@@ -74,9 +77,6 @@
         }
       }
     }
-  },
-  "abort": {
-    "single_instance_allowed": "Only one instance of SimpleChores is allowed."
   },
   "options": {
     "step": {

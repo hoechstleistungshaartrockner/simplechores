@@ -5,6 +5,9 @@ on:
   pull_request:
   schedule:
     - cron:  '0 0 * * *'
+  workflow_dispatch:
+
+permissions: {}
 
 jobs:
   validate:
@@ -12,4 +15,7 @@ jobs:
     steps:
         - uses: "actions/checkout@v4"
         - uses: "home-assistant/actions/hassfest@master"
-        - uses: "hacs/action@22.5.0"
+        - name: HACS validation
+          uses: "hacs/action@main"
+          with:
+            category: "integration"

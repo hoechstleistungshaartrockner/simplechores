@@ -1,10 +1,10 @@
+
+<img src="./custom_components/simplechores/brand/logo.png"/>
+
 <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=hoechstleistungshaartrockner&repository=simplechores&category=integration" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open your Home Assistant instance and open a repository inside the Home Assistant Community Store." /></a>
 
 # Home Assistant Simple Chores
 A Home Assistant integration to manage and track household chores. It allows you to create chores, assign them to family members, set due dates.
-
->[!WARNING]
-> This integration is still in development and may have bugs or incomplete features. Use with caution and report any issues you encounter.
 
 ## Features
 - Create and manage chores with due dates, custom recurrency and assigned members.
@@ -184,6 +184,8 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `related_entities`: dictionary of related entity IDs for this chore
 
 ## Example Dashboard Configuration
+
+<img src="./custom_components/simplechores/docs/dashboard_screenshot.png" alt="Screenshot of Dashboard Suggestion" />
 
 This code snippet demonstrates how to create a chore dashboard using the decluttering-card and auto-entities card. It organizes chores into sections based on their state (overdue, pending, completed) and allows users to toggle chore states directly from the dashboard.
 **You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable (look out for 'user: test' and 'user: Member 2')

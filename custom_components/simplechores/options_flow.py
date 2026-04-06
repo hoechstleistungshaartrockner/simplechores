@@ -45,7 +45,7 @@ from .member import Member
 from .chore import Chore
 import time
 import random
-from datetime import date
+from datetime import date, datetime
 
 from homeassistant.helpers import device_registry as dr, area_registry as ar
 from homeassistant.helpers import selector
@@ -810,7 +810,6 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
         if self._chore_mode == "add":
             # Create unique ID for chore (slugified name + timestamp)
             chore_name = self._chore_data["chore_name"]
-            chore_id = f"{chore_name.lower().replace(' ', '_')}_{int(time.time())}"
             
             # Create the chore with all collected data
             chore = Chore(
@@ -826,6 +825,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 recurrence_annual_month=self._chore_data.get(CONF_RECURRENCE_ANNUAL_MONTH),
                 recurrence_annual_day=self._chore_data.get(CONF_RECURRENCE_ANNUAL_DAY),
                 area_id=area_id,
+                created_at=datetime.now().isoformat()
             )
             
             # Assign initial member if needed
@@ -842,7 +842,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             chore.due_date = date.today().isoformat()
             
             # Add to storage
-            storage.add_chore(chore_id, chore)
+            storage.add_chore(chore.chore_id, chore)
             
         else:  # edit mode
             chore_id = self._selected_chore
@@ -864,14 +864,15 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
             chore.recurrence_specific_weekdays = self._chore_data.get(CONF_RECURRENCE_SPECIFIC_WEEKDAYS, [])
             chore.recurrence_annual_month = self._chore_data.get(CONF_RECURRENCE_ANNUAL_MONTH)
             chore.recurrence_annual_day = self._chore_data.get(CONF_RECURRENCE_ANNUAL_DAY)
+            chore.created_at = self._chore_data.get("created_at")
             
             # Update storage
-            storage.update_chore(chore_id, chore)
+            storage.update_chore(chore.chore_id, chore)
             
             # Update device with new name and area if changed
             device_reg = dr.async_get(self.hass)
             device = device_reg.async_get_device(
-                identifiers={(DOMAIN, f"chore_{chore_id}")}
+                identifiers={(DOMAIN, f"chore_{chore.chore_id}")}
             )
             if device:
                 device_reg.async_update_device(
@@ -920,6 +921,7 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                     CONF_RECURRENCE_SPECIFIC_WEEKDAYS: chore.recurrence_specific_weekdays,
                     CONF_RECURRENCE_ANNUAL_MONTH: chore.recurrence_annual_month,
                     CONF_RECURRENCE_ANNUAL_DAY: chore.recurrence_annual_day,
+                    "created_at": chore.created_at,
                 }
                 # Move to basic info editing using shared step
                 return await self.async_step_chore_basic()

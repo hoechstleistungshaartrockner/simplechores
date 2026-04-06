@@ -67,6 +67,7 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         self._attr_name = "Assigned to"
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_assigned_to"
         self._attr_icon = "mdi:account-arrow-right"
+        self._attr_entity_id = f"{DOMAIN}.{chore_id}_assigned_to"
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""

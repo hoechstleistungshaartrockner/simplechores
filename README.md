@@ -1,3 +1,4 @@
+<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=hoechstleistungshaartrockner&repository=simplechores&category=integration" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open your Home Assistant instance and open a repository inside the Home Assistant Community Store." /></a>
 
 # Home Assistant Simple Chores
 A Home Assistant integration to manage and track household chores. It allows you to create chores, assign them to family members, set due dates.

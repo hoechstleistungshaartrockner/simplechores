@@ -1,11 +1,14 @@
 # __init__.py
 from __future__ import annotations
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant import config as hass_config
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
     DOMAIN, 
@@ -20,6 +23,9 @@ from .storage_manager import SimpleChoresStorageManager
 from .coordinator import SimpleChoresCoordinator
 from .member import Member
 from . import services
+
+# Configuration schema for config-entry only integration
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType):
     """Set up integration via YAML (not used)."""

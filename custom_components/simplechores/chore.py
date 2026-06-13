@@ -1,4 +1,5 @@
 """Chore class for SimpleChores."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict, field
@@ -27,7 +28,7 @@ from .const import (
 @dataclass
 class Chore:
     """Represents a household chore."""
-    
+
     name: str
     points: int = 0
     status: str = CHORE_STATE_PENDING  # pending, completed, overdue
@@ -35,34 +36,50 @@ class Chore:
     due_date: str | None = None  # ISO format date string
     assignment_mode: str = ASSIGN_MODE_ALWAYS  # always, rotate, random
     assigned_to: str | None = None  # Current assignee member
-    possible_assignees: List[str] = field(default_factory=list)  # List of members who can be assigned
+    possible_assignees: List[str] = field(
+        default_factory=list
+    )  # List of members who can be assigned
     recurrence_pattern: str = FREQUENCY_DAILY
-    recurrence_interval: int = 1 # e.g., every 1 day, every 2 days, etc.
-    recurrence_day_of_month: int | None = None # for monthly recurrence on a specific day of the month (1-31, -1 for last day)
-    recurrence_week_of_month: int | List[int] | None = None # supports one or more week numbers (1-4, -1 for last)
-    recurrence_specific_weekdays: List[int] = field(default_factory=list) # for recurrence on specific weekdays (0=Monday, 1=Tuesday, etc.)
-    recurrence_annual_month: int | None = None # for annual recurrence on a specific month (1-12)
-    recurrence_annual_day: int | None = None # for annual recurrence on a specific day (1-365, -1 for last day of the year)
+    recurrence_interval: int = 1  # e.g., every 1 day, every 2 days, etc.
+    recurrence_day_of_month: int | None = (
+        None  # for monthly recurrence on a specific day of the month (1-31, -1 for last day)
+    )
+    recurrence_week_of_month: int | List[int] | None = (
+        None  # supports one or more week numbers (1-4, -1 for last)
+    )
+    recurrence_specific_weekdays: List[int] = field(
+        default_factory=list
+    )  # for recurrence on specific weekdays (0=Monday, 1=Tuesday, etc.)
+    recurrence_annual_month: int | None = (
+        None  # for annual recurrence on a specific month (1-12)
+    )
+    recurrence_annual_day: int | None = (
+        None  # for annual recurrence on a specific day (1-365, -1 for last day of the year)
+    )
     area_id: str | None = None  # Home Assistant area ID for this chore
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())  # Timestamp when chore was created
+    created_at: str = field(
+        default_factory=lambda: datetime.now().isoformat()
+    )  # Timestamp when chore was created
     chore_id: str | None = None  # Unique ID for the chore
 
     def __post_init__(self):
         if not self.chore_id:
             self.chore_id = self._generate_chore_id()
-    
+
     def _generate_chore_id(self) -> str:
         """Generate a unique ID for the chore based on its name, creation time and area_id."""
         base_id = f"{self.name}_{self.created_at}"
         if self.area_id:
             base_id += f"_{self.area_id}"
         # Use a hash to ensure the ID is a valid format and not too long
-        return str(abs(hash(base_id)))[-6:]  # Use last 6 digits of the hash for uniqueness
-    
+        return str(abs(hash(base_id)))[
+            -6:
+        ]  # Use last 6 digits of the hash for uniqueness
+
     def to_dict(self) -> Dict:
         """Convert the Chore dataclass to a dictionary."""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict) -> Chore:
         """Create a Chore instance from a dictionary."""
@@ -90,10 +107,12 @@ class Chore:
             created_at=data.get("created_at", datetime.now().isoformat()),
             chore_id=data.get("chore_id"),
         )
-    
-    def mark_completed(self, member_name: str, storage=None, completion_date: date | None = None) -> None:
+
+    def mark_completed(
+        self, member_name: str, storage=None, completion_date: date | None = None
+    ) -> None:
         """Mark the chore as completed by a specific member.
-        
+
         Args:
             member_name: Name of the member completing the chore
             storage: Storage manager instance (optional, for updating member points/counters)
@@ -101,18 +120,18 @@ class Chore:
         """
         if completion_date is None:
             completion_date = date.today()
-        
+
         self.last_completed = completion_date.isoformat()
-        
+
         # Calculate and set due date
         self.schedule_due_date(completion_date)
-        
+
         # After scheduling, set status to completed (will be updated to pending/overdue by coordinator on the due date)
         self.status = CHORE_STATE_COMPLETED
-        
+
         # Assign to next member
         self.assign()
-        
+
         # Update member points and counters if storage is provided
         if storage is not None:
             member = storage.get_member(member_name)
@@ -120,16 +139,16 @@ class Chore:
                 # Add points to member
                 if self.points > 0:
                     member.add_points(self.points)
-                
+
                 # Increment chore completion counter
                 member.add_chore_completed()
-                
+
                 # Update member in storage
                 storage.update_member(member)
-        
+
     def assign(self) -> None:
         """Assign the chore to a member based on the assignment mode.
-        
+
         This is called after a chore is completed to determine who should do it next.
         """
         if self.assignment_mode == ASSIGN_MODE_ALWAYS:
@@ -145,35 +164,35 @@ class Chore:
         elif self.assignment_mode == ASSIGN_MODE_RANDOM:
             if self.possible_assignees:
                 self.assigned_to = random.choice(self.possible_assignees)
-                
+
     def mark_pending(self) -> None:
         """Mark the chore as pending."""
         self.status = CHORE_STATE_PENDING
         self.due_date = date.today().isoformat()
-    
+
     def mark_overdue(self) -> None:
         """Mark the chore as overdue."""
         self.status = CHORE_STATE_OVERDUE
         self.due_date = (date.today() - timedelta(days=1)).isoformat()
-    
+
     def assign_to_member(self, member_name: str) -> None:
         """Assign this chore to a specific member."""
         self.assigned_to = member_name
-        
+
     def is_overdue(self, current_date: date | None = None) -> bool:
         """Check if the chore is overdue based on due_date."""
         if not self.due_date:
             return False
-        
+
         if current_date is None:
             current_date = date.today()
-        
+
         try:
             due_date = date.fromisoformat(self.due_date)
             return current_date > due_date and self.status != CHORE_STATE_COMPLETED
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return False
-    
+
     def update_overdue_status(self, current_date: date | None = None) -> None:
         """Update the overdue status."""
         if self.is_overdue(current_date):
@@ -184,13 +203,13 @@ class Chore:
 
     def schedule_due_date(self, from_date: date | None = None) -> None:
         """Calculate and set the due date based on the recurrence pattern.
-        
+
         Args:
             from_date: Date to calculate from (defaults to today)
         """
         if from_date is None:
             from_date = date.today()
-        
+
         if self.recurrence_pattern == FREQUENCY_NONE:
             # No recurrence, leave due_date as None
             self.due_date = None
@@ -209,12 +228,12 @@ class Chore:
         else:
             # Unknown pattern, default to daily
             self._schedule_daily(from_date)
-    
+
     def _schedule_daily(self, from_date: date) -> None:
         """Schedule due date for daily recurrence."""
         due_date = from_date + timedelta(days=1)
         self.due_date = due_date.isoformat()
-    
+
     def _schedule_interval_days(self, from_date: date) -> None:
         """Schedule due date based on interval from the last due date."""
         # Use last_completed or current due_date as base, or from_date if neither exists
@@ -223,39 +242,39 @@ class Chore:
         elif self.due_date:
             try:
                 base_date = date.fromisoformat(self.due_date)
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 base_date = from_date
         else:
             base_date = from_date
-        
+
         due_date = base_date + timedelta(days=self.recurrence_interval)
         self.due_date = due_date.isoformat()
-    
+
     def _schedule_specific_days(self, from_date: date) -> None:
         """Schedule due date on specific weekdays."""
         if not self.recurrence_specific_weekdays:
             # No weekdays specified, default to tomorrow
             self.due_date = (from_date + timedelta(days=1)).isoformat()
             return
-        
+
         # Find the next occurrence of any specified weekday
         current_weekday = from_date.weekday()
         days_ahead = None
-        
+
         # Check next 7 days to find the nearest matching weekday
         for i in range(1, 8):
             check_date = from_date + timedelta(days=i)
             if check_date.weekday() in self.recurrence_specific_weekdays:
                 days_ahead = i
                 break
-        
+
         if days_ahead is not None:
             due_date = from_date + timedelta(days=days_ahead)
             self.due_date = due_date.isoformat()
         else:
             # Fallback: just use tomorrow
             self.due_date = (from_date + timedelta(days=1)).isoformat()
-    
+
     def _schedule_monthly_day(self, from_date: date) -> None:
         """Schedule due date on a specific day of the month."""
         if self.recurrence_day_of_month is None:
@@ -267,7 +286,9 @@ class Chore:
             target_day = 1
 
         # First, try this month. If the target date is not in the future, use next month.
-        this_month_due = self._resolve_monthly_day_for_month(from_date.year, from_date.month, target_day)
+        this_month_due = self._resolve_monthly_day_for_month(
+            from_date.year, from_date.month, target_day
+        )
         if this_month_due > from_date:
             self.due_date = this_month_due.isoformat()
             return
@@ -279,10 +300,14 @@ class Chore:
             next_month = from_date.month + 1
             next_year = from_date.year
 
-        next_month_due = self._resolve_monthly_day_for_month(next_year, next_month, target_day)
+        next_month_due = self._resolve_monthly_day_for_month(
+            next_year, next_month, target_day
+        )
         self.due_date = next_month_due.isoformat()
 
-    def _resolve_monthly_day_for_month(self, year: int, month: int, target_day: int) -> date:
+    def _resolve_monthly_day_for_month(
+        self, year: int, month: int, target_day: int
+    ) -> date:
         """Resolve configured monthly day into a valid date for a specific month."""
         days_in_month = calendar.monthrange(year, month)[1]
 
@@ -294,10 +319,13 @@ class Chore:
             day = max(1, day)
 
         return date(year, month, day)
-    
+
     def _schedule_monthly_weekday(self, from_date: date) -> None:
         """Schedule due date on a specific weekday of a specific week in the month."""
-        if self.recurrence_week_of_month is None or not self.recurrence_specific_weekdays:
+        if (
+            self.recurrence_week_of_month is None
+            or not self.recurrence_specific_weekdays
+        ):
             self.due_date = (from_date + timedelta(days=30)).isoformat()
             return
 
@@ -317,7 +345,9 @@ class Chore:
                 if week is None:
                     continue
                 for weekday in self.recurrence_specific_weekdays:
-                    candidate = self._resolve_monthly_weekday_for_month(year, month, week, weekday)
+                    candidate = self._resolve_monthly_weekday_for_month(
+                        year, month, week, weekday
+                    )
                     if candidate is not None and candidate > from_date:
                         candidates.append(candidate)
 
@@ -364,7 +394,7 @@ class Chore:
             return None
 
         return occurrence
-    
+
     def _schedule_annual(self, from_date: date) -> None:
         """Schedule due date annually on a specific date."""
         if self.recurrence_annual_month is None or self.recurrence_annual_day is None:
@@ -375,7 +405,9 @@ class Chore:
         # This naturally handles Feb 29 by selecting the next leap year.
         for year in range(from_date.year, from_date.year + 9):
             try:
-                candidate = date(year, self.recurrence_annual_month, self.recurrence_annual_day)
+                candidate = date(
+                    year, self.recurrence_annual_month, self.recurrence_annual_day
+                )
             except ValueError:
                 continue
 
@@ -384,10 +416,3 @@ class Chore:
                 return
 
         self.due_date = (from_date + timedelta(days=365)).isoformat()
-    
-    
-        
-        
-        
-        
-        

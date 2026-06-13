@@ -45,10 +45,11 @@ class Chore:
     recurrence_annual_day: int | None = None # for annual recurrence on a specific day (1-365, -1 for last day of the year)
     area_id: str | None = None  # Home Assistant area ID for this chore
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())  # Timestamp when chore was created
-    chore_id: str = field(init=False)  # Unique ID for the chore, generated
-    
+    chore_id: str | None = None  # Unique ID for the chore
+
     def __post_init__(self):
-        self.chore_id = self._generate_chore_id()
+        if not self.chore_id:
+            self.chore_id = self._generate_chore_id()
     
     def _generate_chore_id(self) -> str:
         """Generate a unique ID for the chore based on its name, creation time and area_id."""
@@ -87,6 +88,7 @@ class Chore:
             recurrence_annual_day=data.get("recurrence_annual_day"),
             area_id=data.get("area_id"),
             created_at=data.get("created_at", datetime.now().isoformat()),
+            chore_id=data.get("chore_id"),
         )
     
     def mark_completed(self, member_name: str, storage=None, completion_date: date | None = None) -> None:

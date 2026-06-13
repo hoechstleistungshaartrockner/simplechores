@@ -1075,9 +1075,10 @@ class SimpleChoresOptionsFlow(config_entries.OptionsFlow):
                 CONF_RECURRENCE_ANNUAL_DAY
             )
             chore.created_at = self._chore_data.get("created_at")
+            chore.chore_id = self._selected_chore
 
             # Update storage
-            storage.update_chore(chore.chore_id, chore)
+            storage.update_chore(self._selected_chore, chore)
 
             # Update device with new name and area if changed
             device_reg = dr.async_get(self.hass)

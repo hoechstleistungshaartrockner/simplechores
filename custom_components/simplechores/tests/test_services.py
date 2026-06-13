@@ -11,6 +11,10 @@ from custom_components.simplechores.const import (
     SERVICE_UPDATE_POINTS,
     SERVICE_RESET_POINTS,
     SERVICE_RESCHEDULE_CHORE,
+    SERVICE_INCREASE_SORT_PRIORITY,
+    SERVICE_DECREASE_SORT_PRIORITY,
+    SORT_OPTION_AREA,
+    SORT_OPTION_NAME,
     TRACKER_PERIOD_TODAY,
     TRACKER_PERIOD_THIS_WEEK,
 )
@@ -287,3 +291,75 @@ async def test_reschedule_chore_service_default_today(hass: HomeAssistant, mock_
     updated_chore = storage.get_chore(test_chore.chore_id)
     assert updated_chore.due_date == today.isoformat()
     assert updated_chore.status == "pending"  # Today = pending status
+
+
+async def test_increase_sort_priority_service(hass: HomeAssistant, mock_config_entry) -> None:
+    """Test the increase_sort_priority service."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    storage = hass.data[DOMAIN][mock_config_entry.entry_id]["storage"]
+    member = storage.get_member("Alice")
+    assert member is not None
+    assert member.get_sort_priority(SORT_OPTION_AREA) == 1
+
+    entity_id = "number.alice_sort_priority_area"
+    hass.states.async_set(
+        entity_id,
+        "1",
+        {
+            "dashboard_user_name": "Alice",
+            "sort_criterion": SORT_OPTION_AREA,
+            "integration": DOMAIN,
+        },
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_INCREASE_SORT_PRIORITY,
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    member = storage.get_member("Alice")
+    assert member is not None
+    assert member.dashboard_sort_hierarchy == ["due_date", "area", "name"]
+
+
+async def test_decrease_sort_priority_service(hass: HomeAssistant, mock_config_entry) -> None:
+    """Test the decrease_sort_priority service."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    storage = hass.data[DOMAIN][mock_config_entry.entry_id]["storage"]
+    member = storage.get_member("Alice")
+    assert member is not None
+    assert member.get_sort_priority(SORT_OPTION_NAME) == 3
+
+    entity_id = "number.alice_sort_priority_name"
+    hass.states.async_set(
+        entity_id,
+        "3",
+        {
+            "dashboard_user_name": "Alice",
+            "sort_criterion": SORT_OPTION_NAME,
+            "integration": DOMAIN,
+        },
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_DECREASE_SORT_PRIORITY,
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    member = storage.get_member("Alice")
+    assert member is not None
+    assert member.dashboard_sort_hierarchy == ["area", "name", "due_date"]

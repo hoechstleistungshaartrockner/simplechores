@@ -121,3 +121,31 @@ reschedule_chore:
           mode: box
           min: 0
           max: 365
+
+increase_sort_priority:
+  name: Increase dashboard sorting priority level
+  description: Increase the sorting priority level for a dashboard sort criterion using its corresponding number entity.
+  fields:
+    entity_id:
+      name: Entity ID
+      description: Entity ID of the dashboard sorting priority number entity
+      required: true
+      example: "number.alice_sort_priority_area"
+      selector:
+        entity:
+          domain: number
+          integration: simplechores
+
+decrease_sort_priority:
+  name: Decrease dashboard sorting priority level
+  description: Decrease the sorting priority level for a dashboard sort criterion using its corresponding number entity.
+  fields:
+    entity_id:
+      name: Entity ID
+      description: Entity ID of the dashboard sorting priority number entity
+      required: true
+      example: "number.alice_sort_priority_area"
+      selector:
+        entity:
+          domain: number
+          integration: simplechores

@@ -1,6 +1,8 @@
 """Select platform for SimpleChores."""
+
 from __future__ import annotations
 
+import asyncio
 from datetime import date, timedelta
 
 from homeassistant.components.select import SelectEntity
@@ -16,6 +18,7 @@ from .const import (
     DOMAIN,
     DEVICE_MANUFACTURER,
     DEVICE_MODEL_CHORE,
+    DEVICE_MODEL_MEMBER,
     DEVICE_SW_VERSION,
     LOGGER,
     CHORE_STATE_PENDING,
@@ -33,17 +36,20 @@ async def async_setup_entry(
     """Set up SimpleChores select entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     storage = hass.data[DOMAIN][entry.entry_id]["storage"]
-    
+
     # Get chores from storage
     chores = storage.get_chores()
+    members = storage.get_members()
 
     entities = []
-    
+
     # Create select entities for each chore
     for chore_id, chore in chores.items():
         entities.append(ChoreStatusSelect(coordinator, entry, chore_id, chore.name))
         entities.append(ChoreAssigneeSelect(coordinator, entry, chore_id, chore.name))
-        entities.append(ChoreCompletedBySelect(coordinator, entry, chore_id, chore.name))
+        entities.append(
+            ChoreCompletedBySelect(coordinator, entry, chore_id, chore.name)
+        )
 
     async_add_entities(entities)
 
@@ -68,6 +74,7 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_assigned_to"
         self._attr_icon = "mdi:account-arrow-right"
         self._attr_entity_id = f"{DOMAIN}.{chore_id}_assigned_to"
+        self.entity_id = f"select.{chore_id}_assigned_to".replace(" ", "_").lower()
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""
@@ -95,14 +102,14 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         # Get chore from storage to show status and assigned member
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore:
             hw_info = f"{chore.status.capitalize()}"
             if chore.assigned_to:
                 hw_info += f" • Assigned to {chore.assigned_to}"
         else:
             hw_info = "Unknown"
-        
+
         return DeviceInfo(
             identifiers={(DOMAIN, f"chore_{self.chore_id}")},
             name=self.chore_name,
@@ -118,10 +125,10 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         """Return list of possible assignees for this chore."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore and chore.possible_assignees:
             return chore.possible_assignees
-        
+
         # Fallback to all members if no specific assignees
         members = storage.get_members()
         return list(members.keys())
@@ -145,7 +152,7 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         """Return the currently assigned member."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore:
             return chore.assigned_to
         return None
@@ -154,30 +161,28 @@ class ChoreAssigneeSelect(CoordinatorEntity, SelectEntity):
         """Handle member selection - assign chore to selected member."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore is None:
             LOGGER.error(f"Chore {self.chore_id} not found")
             return
-        
+
         # Verify the member exists
         member = storage.get_member(option)
         if member is None:
             LOGGER.error(f"Member {option} not found")
             return
-        
+
         # Assign chore to member
         chore.assign_to_member(option)
-        
+
         # Update storage
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
-        
+
         # Force immediate coordinator refresh to update all entities
         await self.coordinator.async_refresh()
-        
-        LOGGER.info(
-            f"Chore '{self.chore_name}' assigned to {option}"
-        )
+
+        LOGGER.info(f"Chore '{self.chore_name}' assigned to {option}")
 
 
 class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
@@ -199,6 +204,9 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         self._attr_name = "Mark completed by"
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_mark_completed_by"
         self._attr_icon = "mdi:account-check"
+        self.entity_id = f"select.{chore_id}_mark_completed_by".lower().replace(
+            " ", "_"
+        )
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""
@@ -226,14 +234,14 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         # Get chore from storage to show status and assigned member
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore:
             hw_info = f"{chore.status.capitalize()}"
             if chore.assigned_to:
                 hw_info += f" • Assigned to {chore.assigned_to}"
         else:
             hw_info = "Unknown"
-        
+
         return DeviceInfo(
             identifiers={(DOMAIN, f"chore_{self.chore_id}")},
             name=self.chore_name,
@@ -274,29 +282,27 @@ class ChoreCompletedBySelect(CoordinatorEntity, SelectEntity):
         """Handle member selection - mark chore as completed by selected member."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore is None:
             LOGGER.error(f"Chore {self.chore_id} not found")
             return
-        
+
         member = storage.get_member(option)
         if member is None:
             LOGGER.error(f"Member {option} not found")
             return
-        
+
         # Mark chore as completed (handles points and counter updates)
         chore.mark_completed(option, storage, date.today())
-        
+
         # Update storage
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
-        
+
         # Force immediate coordinator refresh to update all entities
         await self.coordinator.async_refresh()
-        
-        LOGGER.info(
-            f"Chore '{self.chore_name}' marked as completed by {option}"
-        )
+
+        LOGGER.info(f"Chore '{self.chore_name}' marked as completed by {option}")
 
 
 class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
@@ -318,6 +324,7 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         self._attr_name = "Status"
         self._attr_unique_id = f"{DOMAIN}_{chore_id}_status"
         self._attr_icon = "mdi:clipboard-check"
+        self.entity_id = f"select.{chore_id}_status".lower().replace(" ", "_")
 
     def _get_related_entity_ids(self) -> dict[str, str]:
         """Get all related entity IDs for this chore."""
@@ -344,14 +351,14 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         """Return device information about this chore."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore:
             hw_info = f"{chore.status.capitalize()}"
             if chore.assigned_to:
                 hw_info += f" • Assigned to {chore.assigned_to}"
         else:
             hw_info = "Unknown"
-        
+
         return DeviceInfo(
             identifiers={(DOMAIN, f"chore_{self.chore_id}")},
             name=self.chore_name,
@@ -372,36 +379,36 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         """Return extra state attributes."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         attrs = {
             "integration": DOMAIN,
             "chore_id": self.chore_id,
             "chore_name": self.chore_name,
             "related_entities": self._get_related_entity_ids(),
         }
-        
+
         device_id = self._get_device_id()
         if device_id:
             attrs["device_id"] = device_id
-        
+
         if chore:
             # Add assigned_to attribute
             if chore.assigned_to:
                 attrs["assigned_to"] = chore.assigned_to
-            
+
             # Add due_date attribute
             if chore.due_date:
                 attrs["due_date"] = chore.due_date
-                
+
                 # Calculate and add due_in_days
                 try:
                     due_date = date.fromisoformat(chore.due_date)
                     today = date.today()
                     due_in_days = (due_date - today).days
                     attrs["due_in_days"] = due_in_days
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     pass
-            
+
             # Add area information
             if chore.area_id:
                 attrs["area_id"] = chore.area_id
@@ -410,7 +417,7 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
                 area = area_reg.async_get_area(chore.area_id)
                 if area:
                     attrs["area_name"] = area.name
-        
+
         return attrs
 
     @property
@@ -418,7 +425,7 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         """Return the current status."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore:
             return chore.status
         return None
@@ -427,11 +434,11 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
         """Handle status selection - update chore status."""
         storage = self.coordinator.storage
         chore = storage.get_chore(self.chore_id)
-        
+
         if chore is None:
             LOGGER.error(f"Chore {self.chore_id} not found")
             return
-        
+
         # Update chore status based on selection
         if option == CHORE_STATE_PENDING:
             chore.mark_pending()
@@ -445,14 +452,12 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
             else:
                 chore.status = CHORE_STATE_COMPLETED
                 chore.last_completed = date.today().isoformat()
-        
+
         # Update storage
         storage.update_chore(self.chore_id, chore)
         await storage.async_save()
-        
+
         # Force immediate coordinator refresh to update all entities
         await self.coordinator.async_refresh()
-        
-        LOGGER.info(
-            f"Chore '{self.chore_name}' status updated to {option}"
-        )
+
+        LOGGER.info(f"Chore '{self.chore_name}' status updated to {option}")

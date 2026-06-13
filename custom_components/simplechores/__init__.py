@@ -11,14 +11,14 @@ from homeassistant import config as hass_config
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    DOMAIN, 
-    CONF_MEMBERS, 
+    DOMAIN,
+    CONF_MEMBERS,
     PLATFORMS,
-    DEVICE_MANUFACTURER, 
+    DEVICE_MANUFACTURER,
     DEVICE_MODEL_MEMBER,
     DEVICE_MODEL_CHORE,
     DEVICE_SW_VERSION,
-    )
+)
 from .storage_manager import SimpleChoresStorageManager
 from .coordinator import SimpleChoresCoordinator
 from .member import Member
@@ -27,32 +27,51 @@ from . import services
 # Configuration schema for config-entry only integration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+
+async def async_ensure_dashboard_filter_helpers(
+    hass: HomeAssistant, storage: SimpleChoresStorageManager, entry: ConfigEntry
+):
+    """Initialize dashboard filter states for all member pairs."""
+    all_member_names = list(storage.get_members().keys())
+
+    # Initialize dashboard filters for all members
+    for member in storage.get_members().values():
+        member.init_dashboard_filters(all_member_names)
+
+    await storage.async_save()
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType):
     """Set up integration via YAML (not used)."""
     return True
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up SimpleChores from a config entry."""
-    
+
     storage = SimpleChoresStorageManager(hass)
     await storage.async_load()
 
     # If this is the very first run (storage file didn't exist), create members from config entry
     # We check if storage.data is empty (not just members) to distinguish first run from "all members deleted"
-    if not storage.data.get("members") and not storage.data.get("chores") and CONF_MEMBERS in entry.data:
+    if (
+        not storage.data.get("members")
+        and not storage.data.get("chores")
+        and CONF_MEMBERS in entry.data
+    ):
         member_names = entry.data[CONF_MEMBERS]
         for member_name in member_names:
             member = Member(name=member_name)
             storage.add_member(member)
         await storage.async_save()
-    
+
     coordinator = SimpleChoresCoordinator(hass, storage)
     await coordinator.async_config_entry_first_refresh()
 
     # Register devices for each household member in storage
     device_reg = dr.async_get(hass)
     all_members = storage.get_members()
-    
+
     for member_name in all_members:
         device_reg.async_get_or_create(
             config_entry_id=entry.entry_id,
@@ -62,10 +81,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             model=DEVICE_MODEL_MEMBER,
             sw_version=DEVICE_SW_VERSION,
         )
-    
+
+    # Create dashboard filter helpers for each member
+    await async_ensure_dashboard_filter_helpers(hass, storage, entry)
+
     # Register devices for each chore in storage
     all_chores = storage.get_chores()
-    
+
     for chore_id, chore in all_chores.items():
         device = device_reg.async_get_or_create(
             config_entry_id=entry.entry_id,
@@ -75,7 +97,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             model=DEVICE_MODEL_CHORE,
             sw_version=DEVICE_SW_VERSION,
         )
-        
+
         # Assign to area if specified
         if chore.area_id:
             device_reg.async_update_device(device.id, area_id=chore.area_id)
@@ -90,7 +112,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     async def _handle_midnight(now):
         """Handle midnight event to check period resets."""
         await coordinator.async_refresh_data()
-    
+
     # Trigger at midnight every day
     unsub = async_track_time_change(
         hass,
@@ -110,20 +132,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     return True
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    
+
     if unload_ok:
         # Unsubscribe from midnight timer
         entry_data = hass.data[DOMAIN].pop(entry.entry_id)
         if "unsub_midnight" in entry_data:
             entry_data["unsub_midnight"]()
-        
+
         # Unload services if this was the last entry
         if not hass.data[DOMAIN]:
             await services.async_unload_services(hass)
-    
+
     return unload_ok
 
 

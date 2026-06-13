@@ -18,7 +18,8 @@ PLATFORMS = [
     Platform.SELECT,
     Platform.NUMBER,
     Platform.DATE,
-    ]
+    Platform.SWITCH,
+]
 
 # Storage and Versioning
 STORAGE_KEY = "simplechores_storage"
@@ -59,7 +60,7 @@ DEFAULT_RESET_POINTS = False
 # Recurrence Intervals
 CONF_RECURRENCE_PATTERN = "recurrence_pattern"
 CONF_RECURRENCE_INTERVAL = "recurrence_interval"
-CONF_RECURRENCE_DAY_OF_MONTH = "recurrence_day_of_month" # always on the same day of the month (1-31,-1 for last day)
+CONF_RECURRENCE_DAY_OF_MONTH = "recurrence_day_of_month"  # always on the same day of the month (1-31,-1 for last day)
 CONF_RECURRENCE_WEEK_OF_MONTH = "recurrence_week_of_month"  # 1-4 or -1 for last
 CONF_RECURRENCE_SPECIFIC_WEEKDAYS = "recurrence_specific_weekdays"  # List of days
 CONF_RECURRENCE_ANNUAL_MONTH = "recurrence_annual_month"
@@ -75,7 +76,7 @@ FREQUENCY_SPECIFIC_DAYS = "specific_days"
 FREQUENCY_ANNUAL = "annual_day"
 DEFAULT_RECURRENCE_PATTERN = FREQUENCY_DAILY
 
-# Assignment Modes 
+# Assignment Modes
 ASSIGN_MODE_ALWAYS = "always"  # Each member does their own (e.g., clean own desk)
 ASSIGN_MODE_ROTATE = "rotate"  # Take turns doing community task
 ASSIGN_MODE_RANDOM = "random"  # Random member does community task
@@ -85,6 +86,14 @@ DEFAULT_ASSIGN_MODE = ASSIGN_MODE_ALWAYS
 CHORE_STATE_COMPLETED = "completed"
 CHORE_STATE_PENDING = "pending"
 CHORE_STATE_OVERDUE = "overdue"
+CHORE_FILTER_STATES = [CHORE_STATE_PENDING, CHORE_STATE_OVERDUE, CHORE_STATE_COMPLETED]
+
+# Dashboard Sorting Options
+SORT_OPTION_NAME = "name"
+SORT_OPTION_DUE_DATE = "due_date"
+SORT_OPTION_AREA = "area"
+SORT_OPTIONS = [SORT_OPTION_NAME, SORT_OPTION_DUE_DATE, SORT_OPTION_AREA]
+DEFAULT_SORT_HIERARCHY = [SORT_OPTION_AREA, SORT_OPTION_DUE_DATE, SORT_OPTION_NAME]
 
 # Device Info
 DEVICE_MANUFACTURER = "SimpleChores"
@@ -113,6 +122,8 @@ SERVICE_RESET_POINTS = "reset_points"
 SERVICE_TOGGLE_CHORE = "toggle_chore"
 SERVICE_UPDATE_CHORES = "update_chores"
 SERVICE_RESCHEDULE_CHORE = "reschedule_chore"
+SERVICE_INCREASE_SORT_PRIORITY = "increase_sort_priority"
+SERVICE_DECREASE_SORT_PRIORITY = "decrease_sort_priority"
 
 # Chore tracker and point tracker Period Types
 TRACKER_PERIOD_TODAY = "today"

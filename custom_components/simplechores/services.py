@@ -14,6 +14,8 @@ from .const import (
     SERVICE_TOGGLE_CHORE,
     SERVICE_UPDATE_CHORES,
     SERVICE_RESCHEDULE_CHORE,
+    SERVICE_INCREASE_SORT_PRIORITY,
+    SERVICE_DECREASE_SORT_PRIORITY,
     TRACKER_PERIOD_TODAY,
     TRACKER_PERIOD_THIS_WEEK,
     TRACKER_PERIOD_THIS_MONTH,
@@ -46,6 +48,10 @@ RESCHEDULE_CHORE_SCHEMA = vol.Schema({
     vol.Required("entity_id"): cv.entity_id,
     vol.Optional("due_date"): cv.date,
     vol.Optional("days_from_now"): vol.Coerce(int),
+})
+
+SORT_PRIORITY_SCHEMA = vol.Schema({
+    vol.Required("entity_id"): cv.entity_id,
 })
 
 
@@ -272,6 +278,71 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         LOGGER.info(f"Chore '{chore.name}' rescheduled to {target_date.isoformat()}")
 
+    async def _change_sort_priority(call: ServiceCall, change: int, action: str) -> None:
+        entity_id = call.data["entity_id"]
+
+        entity_state = hass.states.get(entity_id)
+        if entity_state is None:
+            LOGGER.error(f"Entity {entity_id} not found")
+            return
+
+        sort_criterion = entity_state.attributes.get("sort_criterion")
+        member_name = entity_state.attributes.get("dashboard_user_name")
+
+        if sort_criterion is None:
+            LOGGER.error(f"Entity {entity_id} does not have a sort_criterion attribute")
+            return
+        if member_name is None:
+            LOGGER.error(f"Entity {entity_id} does not have a dashboard_user_name attribute")
+            return
+
+        entry_id = next(iter(hass.data[DOMAIN]))
+        storage = hass.data[DOMAIN][entry_id]["storage"]
+        coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+
+        member = storage.get_member(member_name)
+        if member is None:
+            LOGGER.error(f"Member '{member_name}' not found")
+            return
+
+        current_level = member.get_sort_priority(sort_criterion)
+        if current_level is None:
+            LOGGER.error(
+                f"Sort criterion '{sort_criterion}' is not configured for member '{member_name}'"
+            )
+            return
+
+        target_level = current_level + change
+        if target_level < 1 or target_level > len(member.dashboard_sort_hierarchy):
+            LOGGER.debug(
+                "Sort priority change for %s on %s would be out of bounds: %s",
+                member_name,
+                sort_criterion,
+                target_level,
+            )
+            return
+
+        member.set_sort_priority(sort_criterion, target_level)
+        storage.update_member(member)
+        await storage.async_save()
+        await coordinator.async_refresh_data()
+
+        LOGGER.info(
+            "Member '%s' sort priority for %s %s to %s",
+            member_name,
+            sort_criterion,
+            action,
+            target_level,
+        )
+
+    async def handle_increase_sort_priority(call: ServiceCall) -> None:
+        """Handle the increase_sort_priority service call."""
+        await _change_sort_priority(call, 1, "increased")
+
+    async def handle_decrease_sort_priority(call: ServiceCall) -> None:
+        """Handle the decrease_sort_priority service call."""
+        await _change_sort_priority(call, -1, "decreased")
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -307,7 +378,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=RESCHEDULE_CHORE_SCHEMA,
     )
 
-    LOGGER.debug("Services registered: update_points, reset_points, toggle_chore, update_chores, reschedule_chore")
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_INCREASE_SORT_PRIORITY,
+        handle_increase_sort_priority,
+        schema=SORT_PRIORITY_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DECREASE_SORT_PRIORITY,
+        handle_decrease_sort_priority,
+        schema=SORT_PRIORITY_SCHEMA,
+    )
+
+    LOGGER.debug(
+        "Services registered: update_points, reset_points, toggle_chore, update_chores, reschedule_chore, increase_sort_priority, decrease_sort_priority"
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -317,4 +404,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_CHORE)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CHORES)
     hass.services.async_remove(DOMAIN, SERVICE_RESCHEDULE_CHORE)
+    hass.services.async_remove(DOMAIN, SERVICE_INCREASE_SORT_PRIORITY)
+    hass.services.async_remove(DOMAIN, SERVICE_DECREASE_SORT_PRIORITY)
     LOGGER.debug("Services unloaded")

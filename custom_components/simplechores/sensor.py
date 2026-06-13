@@ -1,4 +1,5 @@
 """Sensor platform for SimpleChores."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, date
@@ -55,33 +56,63 @@ async def async_setup_entry(
     """Set up SimpleChores sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     storage = hass.data[DOMAIN][entry.entry_id]["storage"]
-    
+
     # Get members from storage (not entry.data)
     member_names = list(storage.get_members().keys())
-    
+
     # Get chores from storage
     chores = storage.get_chores()
 
     entities = []
-    
+
     # Member sensors
     for member_name in member_names:
         # Points tracking sensors
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH))
-        entities.append(MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR))
-        
+        entities.append(
+            MemberPointsSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY)
+        )
+        entities.append(
+            MemberPointsSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK
+            )
+        )
+        entities.append(
+            MemberPointsSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH
+            )
+        )
+        entities.append(
+            MemberPointsSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR
+            )
+        )
+
         # Chore completion tracking sensors
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH))
-        entities.append(MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR))
-        
+        entities.append(
+            MemberChoresSensor(coordinator, entry, member_name, TRACKER_PERIOD_TODAY)
+        )
+        entities.append(
+            MemberChoresSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_WEEK
+            )
+        )
+        entities.append(
+            MemberChoresSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_MONTH
+            )
+        )
+        entities.append(
+            MemberChoresSensor(
+                coordinator, entry, member_name, TRACKER_PERIOD_THIS_YEAR
+            )
+        )
+
         # Status sensors
         entities.append(MemberPendingChoresSensor(coordinator, entry, member_name))
         entities.append(MemberOverdueChoresSensor(coordinator, entry, member_name))
-        entities.append(MemberAssignedChoreEntitiesSensor(coordinator, entry, member_name))
+        entities.append(
+            MemberAssignedChoreEntitiesSensor(coordinator, entry, member_name)
+        )
 
     async_add_entities(entities)
 
@@ -153,6 +184,9 @@ class MemberPointsSensor(SimpleChoresBaseSensor):
         self._attr_icon = ICON_POINTS
         self._attr_state_class = SensorStateClass.TOTAL
         self._attr_native_unit_of_measurement = points_label.lower()
+        self.entity_id = f"sensor.{member_name}_points_earned_{period}".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def native_value(self) -> int:
@@ -161,7 +195,7 @@ class MemberPointsSensor(SimpleChoresBaseSensor):
         member = self.coordinator.storage.get_member(self.member_name)
         if member is None:
             return 0
-        
+
         # Get points for the period
         return member.get_points(self.period)
 
@@ -180,10 +214,13 @@ class MemberChoresSensor(SimpleChoresBaseSensor):
         super().__init__(coordinator, entry, member_name)
         self.period = period
         self._attr_name = f"{SENSOR_NAME_CHORES_COMPLETED} {period.replace('_', ' ')}"
-        self._attr_unique_id = f"{DOMAIN}_{member_name}_chores_{period}"
+        self._attr_unique_id = f"{DOMAIN}_{member_name}_chores_completed_{period}"
         self._attr_icon = ICON_CHORES_COMPLETED
         self._attr_state_class = SensorStateClass.TOTAL
         self._attr_native_unit_of_measurement = UNIT_CHORES
+        self.entity_id = f"sensor.{member_name}_chores_completed_{period}".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def native_value(self) -> int:
@@ -192,7 +229,7 @@ class MemberChoresSensor(SimpleChoresBaseSensor):
         member = self.coordinator.storage.get_member(self.member_name)
         if member is None:
             return 0
-        
+
         # Get chores completed for the period
         return member.get_chores_completed(self.period)
 
@@ -213,20 +250,23 @@ class MemberPendingChoresSensor(SimpleChoresBaseSensor):
         self._attr_icon = ICON_PENDING_CHORES
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = UNIT_CHORES
+        self.entity_id = f"sensor.{member_name}_pending_chores".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def native_value(self) -> int:
         """Return the number of pending chores."""
         # Get all chores from storage
         chores = self.coordinator.storage.data.get(DATA_CHORES, {})
-        
+
         # Count pending chores assigned to this member
         pending_count = 0
         for chore_id, chore_data in chores.items():
             if chore_data.get(CHORE_FIELD_ASSIGNED_TO) == self.member_name:
                 if chore_data.get(CHORE_FIELD_STATUS) == CHORE_STATE_PENDING:
                     pending_count += 1
-        
+
         return pending_count
 
 
@@ -246,20 +286,23 @@ class MemberOverdueChoresSensor(SimpleChoresBaseSensor):
         self._attr_icon = ICON_OVERDUE_CHORES
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = UNIT_CHORES
+        self.entity_id = f"sensor.{member_name}_overdue_chores".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def native_value(self) -> int:
         """Return the number of overdue chores."""
         # Get all chores from storage
         chores = self.coordinator.storage.data.get(DATA_CHORES, {})
-        
+
         # Count overdue chores assigned to this member
         overdue_count = 0
         for chore_id, chore_data in chores.items():
             if chore_data.get(CHORE_FIELD_ASSIGNED_TO) == self.member_name:
                 if chore_data.get(CHORE_FIELD_STATUS) == CHORE_STATE_OVERDUE:
                     overdue_count += 1
-        
+
         return overdue_count
 
 
@@ -275,16 +318,18 @@ class MemberAssignedChoreEntitiesSensor(SimpleChoresBaseSensor):
         """Initialize the assigned chore entities sensor."""
         super().__init__(coordinator, entry, member_name)
         self._attr_name = "Assigned chore entities"
-        self._attr_unique_id = f"{DOMAIN}_{member_name}_assigned_chore_entities"
+        self._attr_unique_id = f"{DOMAIN}_{member_name}_assigned_chores"
         self._attr_icon = "mdi:format-list-bulleted"
+        self.entity_id = f"sensor.{member_name}_assigned_chores".replace(
+            " ", "_"
+        ).lower()
 
     @property
     def native_value(self) -> int:
         """Return the count of assigned chores."""
         chores = self.coordinator.storage.get_chores()
         assigned_count = sum(
-            1 for chore in chores.values() 
-            if chore.assigned_to == self.member_name
+            1 for chore in chores.values() if chore.assigned_to == self.member_name
         )
         return assigned_count
 
@@ -292,14 +337,14 @@ class MemberAssignedChoreEntitiesSensor(SimpleChoresBaseSensor):
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes including list of entity IDs."""
         chores = self.coordinator.storage.get_chores()
-        
+
         # Get list of status entity IDs for chores assigned to this member
         entity_ids = [
             f"select.{chore_id}_status"
             for chore_id, chore in chores.items()
             if chore.assigned_to == self.member_name
         ]
-        
+
         attrs = {
             "integration": DOMAIN,
             "entity_ids": entity_ids,
@@ -335,14 +380,14 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
         """Return device information about this chore."""
         # Get chore from storage to show status and assigned member
         chore = self.coordinator.storage.get_chore(self.chore_id)
-        
+
         if chore:
             hw_info = f"{chore.status.capitalize()}"
             if chore.assigned_to:
                 hw_info += f" • Assigned to {chore.assigned_to}"
         else:
             hw_info = "Unknown"
-        
+
         return DeviceInfo(
             identifiers={(DOMAIN, f"chore_{self.chore_id}")},
             name=self.chore_name,
@@ -362,7 +407,7 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
             "points": f"number.{self.chore_id}_points",
             "due_date": f"date.{self.chore_id}_due_date",
         }
-    
+
     def _get_device_id(self) -> str | None:
         """Get the device_id for this entity's device."""
         device_registry = dr.async_get(self.hass)
@@ -372,7 +417,7 @@ class SimpleChoresChoreBaseSensor(CoordinatorEntity, SensorEntity):
         if device:
             return device.id
         return None
-    
+
     @property
     def extra_state_attributes(self) -> dict[str, any]:
         """Return extra state attributes."""

@@ -29,16 +29,13 @@ async def async_setup_entry(
     switches = []
     all_members = storage.get_members()
 
-    # Create a switch for each member pair
+    # Create a switch for each member pair, including each member's own tasks
     for member_name in all_members:
         member = storage.get_member(member_name)
         if not member:
             continue
 
         for other_member_name in all_members:
-            if other_member_name == member_name:
-                continue
-
             switches.append(
                 DashboardUserFilterSwitch(
                     coordinator,

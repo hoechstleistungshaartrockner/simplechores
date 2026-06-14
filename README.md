@@ -199,73 +199,282 @@ To make this work, you need to install the following HACS plugins:
 - button-card
 
 ```yaml
+navbar-templates:
+  custom1:
+    layout:
+      auto_padding:
+        enabled: true
+        desktop_px: 100
+        mobile_px: 180
+    desktop:
+      position: left
+      min_width: 768
+      show_labels: true
+    mobile:
+      show_labels: true
+    routes:
+      - icon: mdi:home
+        label: Home
+        url: /dashboard-chores/home
+      - icon: mdi:sofa
+        label: Räume
+        url: /rooms-dashboard2/raume2
+      - icon: mdi:lightning-bolt
+        label: Energie
+        url: /energy
+      - icon: mdi:shield
+        label: Sicherheit
+        url: /security
+      - icon: mdi:checkbox-marked-outline
+        label: To Do
+        url: /dashboard-chores/chores
+        tap_action:
+          action: navigate
+          navigation_path: /dashboard-chores/{{ chores?tab=chores_tab_test }}
+        badge:
+          show: |
+            [[[
+                return (parseInt(states['sensor.' + hass.user.name + '_chores_pending'].state) + parseInt(states['sensor.test_chores_overdue'].state)) > 0;
+            ]]]
+          color: |
+            [[[
+              if (parseInt(states['sensor.' + hass.user.name + '_chores_overdue'].state) > 0) {
+                return "red";
+              } else {
+                return "yellow";
+              };
+            ]]]
+          count: |
+            [[[ 
+                return (parseInt(states['sensor.' + hass.user.name + '_chores_pending'].state) + parseInt(states['sensor.' + hass.user.name + '_chores_overdue'].state));
+            ]]]
 decluttering_templates:
-  all_chore_state_sections:
-    card:
-      type: vertical-stack
-      cards:
-        - type: custom:decluttering-card
-          template: chore_state_section
-          variables:
-            - user: '[[user]]'
-            - state: overdue
-            - icon: mdi:clipboard-alert
-            - number: sensor.[[user]]_chores_overdue
-            - sort_reverse: true
-        - type: custom:decluttering-card
-          template: chore_state_section
-          variables:
-            - user: '[[user]]'
-            - state: pending
-            - icon: mdi:clipboard-list
-            - number: sensor.[[user]]_chores_pending
-            - sort_reverse: true
-        - type: custom:decluttering-card
-          template: chore_state_section
-          variables:
-            - user: '[[user]]'
-            - state: completed
-            - icon: mdi:clipboard-check
-            - number: sensor.[[user]]_chores_pending
-            - sort_reverse: false
-  chore_state_section:
+  simplechores_filtering_options:
     card:
       type: vertical-stack
       cards:
         - type: custom:bubble-card
           card_type: separator
-          name: '[[state]]'
-          icon: '[[icon]]'
-          sub_button:
-            main:
-              - show_icon: false
-                show_name: false
-                entity: '[[number]]'
-                show_state: true
-            bottom: []
-        - type: custom:auto-entities
-          card:
-            type: grid
-            square: false
-            columns: 1
-          card_param: cards
-          filter:
-            include:
-              - entity_id: '*_status'
-                integration: simplechores
-                state: '[[state]]'
-                attributes:
-                  assigned_to: '[[user]]'
-                options:
-                  type: custom:decluttering-card
-                  template: chore_button2
-                  variables:
-                    - entity: this.entity_id
-                    - member: '[[user]]'
-          sort:
-            method: "attribute"
-            attribute: "due_in_days"
-            reverse: "[[sort_reverse]]"
+          icon: mdi:account
+          name: Filter by assigned User
+        - type: grid
+          columns: 2
+          square: false
+          cards:
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_user_filter_test'
+              name: Test
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_user_filter_member_1'
+              name: Member 1
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_user_filter_member_2'
+              name: Member 2
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_user_filter_horst'
+              name: Horst
+        - type: custom:bubble-card
+          card_type: separator
+          icon: mdi:exclamation-thick
+          name: Filter by Status
+        - type: grid
+          columns: 3
+          square: false
+          cards:
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_state_filter_pending'
+              name: pending
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_state_filter_overdue'
+              name: overdue
+            - type: custom:bubble-card
+              card_type: button
+              entity: 'switch.[[user]]_dashboard_state_filter_completed'
+              name: completed
+        - type: custom:bubble-card
+          card_type: separator
+          icon: mdi:sort
+          name: Sort by
+        - type: custom:decluttering-card
+          template: sorting_buttons
+          variables:
+            - user: '[[user]]'
+  simplechores_list:
+    card:
+      type: custom:auto-entities
+      card:
+        type: grid
+        square: false
+        columns: 1
+      card_param: cards
+      else:
+        type: markdown
+        content: no chores to display.
+      filter:
+        template: >
+          {% set current_user = '[[user]]' %}
+
+          {# USER FILTER PREFIX #} {% set filter_prefix_user
+          = 'switch.' ~ current_user ~
+          '_dashboard_user_filter_' %}
+
+          {# STATUS FILTER SWITCHES #} {% set
+          status_switch_pending   = 'switch.' ~ current_user
+          ~ '_dashboard_state_filter_pending' %} {% set
+          status_switch_overdue   = 'switch.' ~ current_user
+          ~ '_dashboard_state_filter_overdue' %} {% set
+          status_switch_completed = 'switch.' ~ current_user
+          ~ '_dashboard_state_filter_completed' %}
+
+          {# SORT PRIORITY ENTITIES #} {% set p_area =
+          states('number.' ~ current_user ~
+          '_sort_priority_area') | int %} {% set p_due  =
+          states('number.' ~ current_user ~
+          '_sort_priority_due_date') | int %} {% set p_name
+          = states('number.' ~ current_user ~
+          '_sort_priority_name') | int %} {# NAMESPACE FOR
+          LIST OPERATIONS #} {% set ns = namespace(items=[])
+          %}
+
+          {# COLLECT MATCHING CHORES #} {% for e in states
+                if '_status' in e.entity_id
+                and e.attributes.integration == 'simplechores' %}
+
+            {# --- USER FILTER LOGIC --- #}
+            {% set assignee_select = e.attributes.related_entities.assigned_to %}
+            {% set member_name = states(assignee_select) %}
+            {% set member_key = member_name | lower | replace(' ', '_') %}
+            {% set user_filter_switch = filter_prefix_user ~ member_key %}
+
+            {% set show_chore = false %}
+
+            {% if member_name == current_user %}
+              {% set show_chore = true %}
+            {% endif %}
+
+            {% if not show_chore and is_state(user_filter_switch, 'on') %}
+              {% set show_chore = true %}
+            {% endif %}
+
+            {# --- STATUS FILTER LOGIC --- #}
+            {% set status = e.state %}
+            {% set status_allowed = false %}
+
+            {% if status == 'pending' and is_state(status_switch_pending, 'on') %}
+              {% set status_allowed = true %}
+            {% endif %}
+            {% if status == 'overdue' and is_state(status_switch_overdue, 'on') %}
+              {% set status_allowed = true %}
+            {% endif %}
+            {% if status == 'completed' and is_state(status_switch_completed, 'on') %}
+              {% set status_allowed = true %}
+            {% endif %}
+
+            {% if not (show_chore and status_allowed) %}
+              {% continue %}
+            {% endif %}
+
+            {# --- RAW VALUES --- #}
+            {% set area = state_attr(e.entity_id, 'area_id') | default('') | lower %}
+            {% set due  = state_attr(e.entity_id, 'due_date') | default('') %}
+            {% set name = state_attr(e.entity_id, 'friendly_name') | default('') | lower %}
+
+            {# BUILD ASPECT LIST WITH PRIORITY + VALUE #}
+            
+            {% set aspects = [
+              {'priority': p_area, 'value': area},
+              {'priority': p_due,  'value': due},
+              {'priority': p_name, 'value': name}
+            ] %}
+
+            {# SORT ASPECTS BY PRIORITY (1 = first, 2 = second, ...) #}
+            {% set aspects = aspects | sort(attribute='priority') %}
+
+            {# BUILD SORT TUPLE IN PRIORITY ORDER #}
+            {% set sort_tuple = namespace(items=[]) %}
+            {% for a in aspects %}
+              {% set sort_tuple.items = sort_tuple.items + [a.priority, a.value] %}
+            {% endfor %}
+
+            {# ADD TO LIST #}
+            {% set ns.items = ns.items + [{
+              'entity': e.entity_id,
+              'sort_tuple': sort_tuple.items
+            }] %}
+
+          {% endfor %}
+
+          {# --- SORT THE LIST BY THE TUPLE --- #} {% set
+          ns.items = ns.items | sort(attribute='sort_tuple')
+          %} {# --- OUTPUT FINAL JSON --- #} [ {% for c in
+          ns.items %}
+            {{ {
+              'entity': c.entity,
+              'type': 'custom:decluttering-card',
+              'template': 'chore_button2',
+              'variables': [{'entity': c.entity}]
+            } }},
+          {% endfor %} ]
+  sorting_buttons:
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:decluttering-card
+          template: sorting_button
+          variables:
+            - entity: number.[[user]]_sort_priority_area
+            - name: Area Priority
+        - type: custom:decluttering-card
+          template: sorting_button
+          variables:
+            - entity: number.[[user]]_sort_priority_due_date
+            - name: Due Date Priority
+        - type: custom:decluttering-card
+          template: sorting_button
+          variables:
+            - entity: number.[[user]]_sort_priority_name
+            - name: Name Priority
+  sorting_button:
+    card:
+      type: custom:bubble-card
+      card_type: button
+      button_type: name
+      entity: '[[entity]]'
+      name: '[[name]]'
+      sub_button:
+        main:
+          - entity: '[[entity]]'
+            sub_button_type: default
+            icon: mdi:arrow-down-bold
+            tap_action:
+              action: perform-action
+              perform_action: simplechores.decrease_sort_priority
+              target: {}
+              data:
+                entity_id: '[[entity]]'
+          - state_background: false
+            entity: '[[entity]]'
+            show_state: true
+            show_icon: false
+            show_background: false
+            force_icon: false
+          - entity: '[[entity]]'
+            icon: mdi:arrow-up-bold
+            state_background: true
+            show_background: true
+            tap_action:
+              action: perform-action
+              perform_action: simplechores.increase_sort_priority
+              target: {}
+              data:
+                entity_id: '[[entity]]'
+        bottom: []
   chore_button2:
     card:
       type: custom:button-card
@@ -371,79 +580,95 @@ decluttering_templates:
             return "/config/devices/device/" + entity.attributes.device_id;
           ]]]
 views:
-  - path: choochoo
-    title: chores
+  - path: home
+    title: Home
     type: sections
     sections:
-      - type: custom:simple-tabs
-        tabs:
-          - title: test
-            icon: mdi:clipboard-list
-            id: tab1
-            card:
-              type: custom:decluttering-card
-              template: all_chore_state_sections
-              variables:
-                - user: test
-          - title: Member 2
-            icon: mdi:format-list-checkbox
-            id: tab2
-            card:
-              type: custom:decluttering-card
-              template: all_chore_state_sections
-              variables:
-                - user: Member 2
+      - type: custom:navbar-card
+        template: custom1
+  - path: chores
+    title: chorespopup
+    type: sections
+    sections:
       - type: grid
         cards:
-          - type: markdown
-            content: >
-              {% set metric = "points_earned_this_week" %}
+          - type: custom:simple-tabs
+            alignment: end
+            tabs:
+              - title: Tasks
+                icon: mdi:checkbox-marked-outline
+                id: tab1
+                card:
+                  type: custom:decluttering-card
+                  template: simplechores_list
+                  variables:
+                    - user: test
+              - icon: mdi:cog
+                id: tab2
+                card:
+                  type: custom:decluttering-card
+                  template: simplechores_filtering_options
+                  variables:
+                    - user: test
+              - icon: mdi:star
+                card:
+                  type: vertical-stack
+                  cards:
+                    - type: markdown
+                      content: >
+                        {% set metric = "points_earned_this_week" %}
 
-              {% set unit = "pts" %}
-
-
-              {# Use a namespace so we can mutate inside the loop #}
-
-              {% set ns = namespace(items=[]) %}
-
-
-              {# Collect entities with numeric value #}
-
-              {% for e in states.sensor
-                | selectattr("entity_id", "search", "_" ~ metric)
-              %}
-                {% set ns.items = ns.items + [{
-                  "entity": e,
-                  "value": e.state | float(0)
-                }] %}
-              {% endfor %}
-
-
-              {# Sort by numeric value descending #}
-
-              {% set sorted = ns.items | sort(attribute="value", reverse=true)
-              %}
-
-
-              # 🏆 Leaderboard — Current Week
+                        {% set unit = "pts" %}
 
 
-              {% for item in sorted %}
-                {% set e = item.entity %}
-                {% set member = e.entity_id
-                  | replace("sensor.", "")
-                  | replace("_" ~ metric, "")
-                %}
-                **{{ loop.index }}. {{ member | capitalize }}** — {{ item.value }} {{ unit }}
-              {% endfor %}
-          - show_name: true
-            show_icon: true
-            type: button
-            entity: ''
-            name: update chores
-            tap_action:
-              action: perform-action
-              perform_action: simplechores.update_chores
-              target: {}
+                        {# Use a namespace so we can mutate inside the loop
+                        #}
+
+                        {% set ns = namespace(items=[]) %}
+
+
+                        {# Collect entities with numeric value #}
+
+                        {% for e in states.sensor
+                          | selectattr("entity_id", "search", "_" ~ metric)
+                        %}
+                          {% set ns.items = ns.items + [{
+                            "entity": e,
+                            "value": e.state | float(0)
+                          }] %}
+                        {% endfor %}
+
+
+                        {# Sort by numeric value descending #}
+
+                        {% set sorted = ns.items | sort(attribute="value",
+                        reverse=true) %}
+
+
+                        # 🏆 Leaderboard — Current Week
+
+
+                        {% for item in sorted %}
+                          {% set e = item.entity %}
+                          {% set member = e.entity_id
+                            | replace("sensor.", "")
+                            | replace("_" ~ metric, "")
+                          %}
+                          **{{ loop.index }}. {{ member | capitalize }}** — {{ item.value }} {{ unit }}
+                        {% endfor %}
+                    - chart_type: bar
+                      period: week
+                      type: statistics-graph
+                      entities:
+                        - sensor.test_points_earned_this_week
+                        - sensor.horst_points_earned_this_week
+                        - sensor.member_1_points_earned_this_week
+                        - sensor.member_2_points_earned_this_week
+                      stat_types:
+                        - state
+                      days_to_show: 90
+                      hide_legend: false
+                      logarithmic_scale: false
+                      expand_legend: false
 
 ```

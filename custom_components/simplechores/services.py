@@ -1,4 +1,5 @@
 """Services for SimpleChores integration."""
+
 from __future__ import annotations
 
 import voluptuous as vol
@@ -26,33 +27,81 @@ from .const import (
 )
 
 # Service schemas
-UPDATE_POINTS_SCHEMA = vol.Schema({
-    vol.Required("member"): cv.string,
-    vol.Required("offset"): vol.Coerce(int),
-    vol.Optional("periods", default=[TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR]): 
-        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])]),
-})
+UPDATE_POINTS_SCHEMA = vol.Schema(
+    {
+        vol.Required("member"): cv.string,
+        vol.Required("offset"): vol.Coerce(int),
+        vol.Optional(
+            "periods",
+            default=[
+                TRACKER_PERIOD_TODAY,
+                TRACKER_PERIOD_THIS_WEEK,
+                TRACKER_PERIOD_THIS_MONTH,
+                TRACKER_PERIOD_THIS_YEAR,
+            ],
+        ): vol.All(
+            cv.ensure_list,
+            [
+                vol.In(
+                    [
+                        TRACKER_PERIOD_TODAY,
+                        TRACKER_PERIOD_THIS_WEEK,
+                        TRACKER_PERIOD_THIS_MONTH,
+                        TRACKER_PERIOD_THIS_YEAR,
+                    ]
+                )
+            ],
+        ),
+    }
+)
 
-RESET_POINTS_SCHEMA = vol.Schema({
-    vol.Required("member"): cv.string,
-    vol.Optional("periods", default=[TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR]): 
-        vol.All(cv.ensure_list, [vol.In([TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])]),
-})
+RESET_POINTS_SCHEMA = vol.Schema(
+    {
+        vol.Required("member"): cv.string,
+        vol.Optional(
+            "periods",
+            default=[
+                TRACKER_PERIOD_TODAY,
+                TRACKER_PERIOD_THIS_WEEK,
+                TRACKER_PERIOD_THIS_MONTH,
+                TRACKER_PERIOD_THIS_YEAR,
+            ],
+        ): vol.All(
+            cv.ensure_list,
+            [
+                vol.In(
+                    [
+                        TRACKER_PERIOD_TODAY,
+                        TRACKER_PERIOD_THIS_WEEK,
+                        TRACKER_PERIOD_THIS_MONTH,
+                        TRACKER_PERIOD_THIS_YEAR,
+                    ]
+                )
+            ],
+        ),
+    }
+)
 
-TOGGLE_CHORE_SCHEMA = vol.Schema({
-    vol.Required("entity_id"): cv.entity_id,
-    vol.Required("member"): cv.string,
-})
+TOGGLE_CHORE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Required("member"): cv.string,
+    }
+)
 
-RESCHEDULE_CHORE_SCHEMA = vol.Schema({
-    vol.Required("entity_id"): cv.entity_id,
-    vol.Optional("due_date"): cv.date,
-    vol.Optional("days_from_now"): vol.Coerce(int),
-})
+RESCHEDULE_CHORE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Optional("due_date"): cv.date,
+        vol.Optional("days_from_now"): vol.Coerce(int),
+    }
+)
 
-SORT_PRIORITY_SCHEMA = vol.Schema({
-    vol.Required("entity_id"): cv.entity_id,
-})
+SORT_PRIORITY_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+    }
+)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -62,7 +111,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle the update_points service call."""
         member_name = call.data["member"]
         offset = call.data["offset"]
-        periods = call.data.get("periods", [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])
+        periods = call.data.get(
+            "periods",
+            [
+                TRACKER_PERIOD_TODAY,
+                TRACKER_PERIOD_THIS_WEEK,
+                TRACKER_PERIOD_THIS_MONTH,
+                TRACKER_PERIOD_THIS_YEAR,
+            ],
+        )
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))
@@ -78,7 +135,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for period in periods:
             current_points = member.get_points(period)
             member.set_points(period, current_points + offset)
-        
+
         storage.update_member(member)
         await storage.async_save()
         await coordinator.async_refresh_data()
@@ -90,7 +147,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_reset_points(call: ServiceCall) -> None:
         """Handle the reset_points service call."""
         member_name = call.data["member"]
-        periods = call.data.get("periods", [TRACKER_PERIOD_TODAY, TRACKER_PERIOD_THIS_WEEK, TRACKER_PERIOD_THIS_MONTH, TRACKER_PERIOD_THIS_YEAR])
+        periods = call.data.get(
+            "periods",
+            [
+                TRACKER_PERIOD_TODAY,
+                TRACKER_PERIOD_THIS_WEEK,
+                TRACKER_PERIOD_THIS_MONTH,
+                TRACKER_PERIOD_THIS_YEAR,
+            ],
+        )
 
         # Get the first config entry (we only allow one instance)
         entry_id = next(iter(hass.data[DOMAIN]))
@@ -105,7 +170,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Reset points for specified periods
         for period in periods:
             member.reset_points(period)
-        
+
         storage.update_member(member)
         await storage.async_save()
         await coordinator.async_refresh_data()
@@ -122,7 +187,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if entity_state is None:
             LOGGER.error(f"Entity {entity_id} not found")
             return
-        
+
         # Get chore_id from entity attributes
         chore_id = entity_state.attributes.get("chore_id")
         if chore_id is None:
@@ -147,7 +212,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             return
 
         # Toggle logic
-        
+
         if chore.status == CHORE_STATE_COMPLETED:
             # If completed, mark as pending
             chore.mark_pending()
@@ -155,18 +220,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         else:
             # If pending or overdue, mark as completed (handles points and counter updates)
             chore.mark_completed(member_name, storage, date.today())
-            
+
             LOGGER.info(
                 f"Chore '{chore.name}' marked as completed by {member_name}, "
                 f"awarded {chore.points} points"
             )
-        
+
         # Update chore in storage
         storage.update_chore(chore_id, chore)
-        
+
         # Immediately update coordinator data to refresh UI
         coordinator.async_set_updated_data(storage.data)
-        
+
         # Save to disk in background (don't await to avoid blocking)
         hass.async_create_task(storage.async_save())
 
@@ -185,11 +250,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for chore_id, chore in chores.items():
             if chore.due_date is None:
                 continue
-            
+
             try:
                 due_date = date.fromisoformat(chore.due_date)
                 old_status = chore.status
-                
+
                 # Update status based on due date
                 if due_date < today:
                     chore.status = CHORE_STATE_OVERDUE
@@ -197,7 +262,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     chore.status = CHORE_STATE_PENDING
                 else:
                     chore.status = CHORE_STATE_COMPLETED
-                
+
                 # Only update if status changed
                 if old_status != chore.status:
                     storage.update_chore(chore_id, chore)
@@ -205,8 +270,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     LOGGER.debug(
                         f"Chore '{chore.name}' status updated from {old_status} to {chore.status}"
                     )
-            except (ValueError, TypeError):
-                LOGGER.warning(f"Invalid due_date for chore '{chore.name}': {chore.due_date}")
+            except ValueError, TypeError:
+                LOGGER.warning(
+                    f"Invalid due_date for chore '{chore.name}': {chore.due_date}"
+                )
                 continue
 
         # Save and refresh if any changes were made
@@ -238,7 +305,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if entity_state is None:
             LOGGER.error(f"Entity {entity_id} not found")
             return
-        
+
         # Get chore_id from entity attributes
         chore_id = entity_state.attributes.get("chore_id")
         if chore_id is None:
@@ -258,7 +325,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         # Set the new due date
         chore.due_date = target_date.isoformat()
-        
+
         # Update status based on new due date
         if target_date < today:
             chore.status = CHORE_STATE_OVERDUE
@@ -269,16 +336,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         # Update chore in storage
         storage.update_chore(chore_id, chore)
-        
+
         # Immediately update coordinator data to refresh UI
         coordinator.async_set_updated_data(storage.data)
-        
+
         # Save to disk in background (don't await to avoid blocking)
         hass.async_create_task(storage.async_save())
 
         LOGGER.info(f"Chore '{chore.name}' rescheduled to {target_date.isoformat()}")
 
-    async def _change_sort_priority(call: ServiceCall, change: int, action: str) -> None:
+    async def _change_sort_priority(
+        call: ServiceCall, change: int, action: str
+    ) -> None:
         entity_id = call.data["entity_id"]
 
         entity_state = hass.states.get(entity_id)
@@ -293,7 +362,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             LOGGER.error(f"Entity {entity_id} does not have a sort_criterion attribute")
             return
         if member_name is None:
-            LOGGER.error(f"Entity {entity_id} does not have a dashboard_user_name attribute")
+            LOGGER.error(
+                f"Entity {entity_id} does not have a dashboard_user_name attribute"
+            )
             return
 
         entry_id = next(iter(hass.data[DOMAIN]))
@@ -324,8 +395,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         member.set_sort_priority(sort_criterion, target_level)
         storage.update_member(member)
-        await storage.async_save()
-        await coordinator.async_refresh_data()
+
+        # Immediately update coordinator data so the UI reflects the change.
+        coordinator.async_set_updated_data(storage.data)
+
+        # Save in the background without delaying the service response.
+        hass.async_create_task(storage.async_save())
 
         LOGGER.info(
             "Member '%s' sort priority for %s %s to %s",

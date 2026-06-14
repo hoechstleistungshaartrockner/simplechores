@@ -158,9 +158,9 @@ class Member:
         return self.dashboard_filter.get(other_user_name, False)
 
     def init_dashboard_filters(self, all_member_names: list[str]):
-        """Initialize dashboard filters for all other members."""
+        """Initialize dashboard filters for all known members."""
         for member_name in all_member_names:
-            if member_name != self.name and member_name not in self.dashboard_filter:
+            if member_name not in self.dashboard_filter:
                 self.dashboard_filter[member_name] = False
 
     def remove_dashboard_filter(self, other_user_name: str):

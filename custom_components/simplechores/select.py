@@ -417,6 +417,11 @@ class ChoreStatusSelect(CoordinatorEntity, SelectEntity):
                 area = area_reg.async_get_area(chore.area_id)
                 if area:
                     attrs["area_name"] = area.name
+            
+            # add recurrence friendly string
+            friendly_recurrence = chore.get_recurrence_friendly_string()
+            if friendly_recurrence:
+                attrs["friendly_recurrence"] = friendly_recurrence
 
         return attrs
 

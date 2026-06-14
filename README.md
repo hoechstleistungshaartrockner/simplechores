@@ -263,19 +263,19 @@ decluttering_templates:
           cards:
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_user_filter_test'
+              entity: switch.[[user]]_dashboard_user_filter_test
               name: Test
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_user_filter_member_1'
+              entity: switch.[[user]]_dashboard_user_filter_member_1
               name: Member 1
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_user_filter_member_2'
+              entity: switch.[[user]]_dashboard_user_filter_member_2
               name: Member 2
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_user_filter_horst'
+              entity: switch.[[user]]_dashboard_user_filter_horst
               name: Horst
         - type: custom:bubble-card
           card_type: separator
@@ -287,15 +287,15 @@ decluttering_templates:
           cards:
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_state_filter_pending'
+              entity: switch.[[user]]_dashboard_state_filter_pending
               name: pending
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_state_filter_overdue'
+              entity: switch.[[user]]_dashboard_state_filter_overdue
               name: overdue
             - type: custom:bubble-card
               card_type: button
-              entity: 'switch.[[user]]_dashboard_state_filter_completed'
+              entity: switch.[[user]]_dashboard_state_filter_completed
               name: completed
         - type: custom:bubble-card
           card_type: separator
@@ -320,27 +320,21 @@ decluttering_templates:
         template: >
           {% set current_user = '[[user]]' %}
 
-          {# USER FILTER PREFIX #} {% set filter_prefix_user
-          = 'switch.' ~ current_user ~
-          '_dashboard_user_filter_' %}
+          {# USER FILTER PREFIX #} {% set filter_prefix_user = 'switch.' ~
+          current_user ~ '_dashboard_user_filter_' %}
 
-          {# STATUS FILTER SWITCHES #} {% set
-          status_switch_pending   = 'switch.' ~ current_user
-          ~ '_dashboard_state_filter_pending' %} {% set
-          status_switch_overdue   = 'switch.' ~ current_user
-          ~ '_dashboard_state_filter_overdue' %} {% set
-          status_switch_completed = 'switch.' ~ current_user
-          ~ '_dashboard_state_filter_completed' %}
+          {# STATUS FILTER SWITCHES #} {% set status_switch_pending   =
+          'switch.' ~ current_user ~ '_dashboard_state_filter_pending' %} {% set
+          status_switch_overdue   = 'switch.' ~ current_user ~
+          '_dashboard_state_filter_overdue' %} {% set status_switch_completed =
+          'switch.' ~ current_user ~ '_dashboard_state_filter_completed' %}
 
-          {# SORT PRIORITY ENTITIES #} {% set p_area =
-          states('number.' ~ current_user ~
-          '_sort_priority_area') | int %} {% set p_due  =
-          states('number.' ~ current_user ~
-          '_sort_priority_due_date') | int %} {% set p_name
-          = states('number.' ~ current_user ~
-          '_sort_priority_name') | int %} {# NAMESPACE FOR
-          LIST OPERATIONS #} {% set ns = namespace(items=[])
-          %}
+          {# SORT PRIORITY ENTITIES #} {% set p_area = states('number.' ~
+          current_user ~ '_sort_priority_area') | int %} {% set p_due  =
+          states('number.' ~ current_user ~ '_sort_priority_due_date') | int %}
+          {% set p_name = states('number.' ~ current_user ~
+          '_sort_priority_name') | int %} {# NAMESPACE FOR LIST OPERATIONS #} {%
+          set ns = namespace(items=[]) %}
 
           {# COLLECT MATCHING CHORES #} {% for e in states
                 if '_status' in e.entity_id
@@ -410,10 +404,9 @@ decluttering_templates:
 
           {% endfor %}
 
-          {# --- SORT THE LIST BY THE TUPLE --- #} {% set
-          ns.items = ns.items | sort(attribute='sort_tuple')
-          %} {# --- OUTPUT FINAL JSON --- #} [ {% for c in
-          ns.items %}
+          {# --- SORT THE LIST BY THE TUPLE --- #} {% set ns.items = ns.items |
+          sort(attribute='sort_tuple') %} {# --- OUTPUT FINAL JSON --- #} [ {%
+          for c in ns.items %}
             {{ {
               'entity': c.entity,
               'type': 'custom:decluttering-card',
@@ -587,7 +580,7 @@ views:
       - type: custom:navbar-card
         template: custom1
   - path: chores
-    title: chorespopup
+    title: chores
     type: sections
     sections:
       - type: grid
@@ -599,17 +592,33 @@ views:
                 icon: mdi:checkbox-marked-outline
                 id: tab1
                 card:
-                  type: custom:decluttering-card
-                  template: simplechores_list
-                  variables:
-                    - user: test
+                  type: vertical-stack
+                  cards:
+                    - type: conditional
+                      conditions:
+                        - condition: user
+                          users:
+                            - 10c27b06f659482da58e34825f3b91cf
+                      card:
+                        type: custom:decluttering-card
+                        template: simplechores_list
+                        variables:
+                          - user: test
               - icon: mdi:cog
                 id: tab2
                 card:
-                  type: custom:decluttering-card
-                  template: simplechores_filtering_options
-                  variables:
-                    - user: test
+                  type: vertical-stack
+                  cards:
+                    - type: conditional
+                      conditions:
+                        - condition: user
+                          users:
+                            - 10c27b06f659482da58e34825f3b91cf
+                      card:
+                        type: custom:decluttering-card
+                        template: simplechores_filtering_options
+                        variables:
+                          - user: test
               - icon: mdi:star
                 card:
                   type: vertical-stack
@@ -621,8 +630,7 @@ views:
                         {% set unit = "pts" %}
 
 
-                        {# Use a namespace so we can mutate inside the loop
-                        #}
+                        {# Use a namespace so we can mutate inside the loop #}
 
                         {% set ns = namespace(items=[]) %}
 
@@ -670,5 +678,39 @@ views:
                       hide_legend: false
                       logarithmic_scale: false
                       expand_legend: false
+              - icon: mdi:clipboard-text-outline
+                card:
+                  type: markdown
+                  content: >
+                    # 🧹 All Implemented Chores
+
+                    {% set rooms = namespace(map={}) %}
+
+                    {# Collect chores grouped by room #} {% for e in states if
+                    '_status' in e.entity_id and e.attributes.integration ==
+                    'simplechores' %}
+                      {% set room = e.attributes.area_id | default('Unknown') %}
+                      {% set chore = {
+                        'name': e.attributes.chore_name,
+                        'rec': e.attributes.friendly_recurrence
+                      } %}
+                      {% if room in rooms.map %}
+                        {% set rooms.map = rooms.map | combine({ room: rooms.map[room] + [chore] }) %}
+                      {% else %}
+                        {% set rooms.map = rooms.map | combine({ room: [chore] }) %}
+                      {% endif %}
+                    {% endfor %}
+
+                    {# Sort rooms alphabetically #} {% for room in
+                    rooms.map.keys() | list | sort %} ## 🏠 {{ room |
+                    replace('_',' ') | title }}
+
+                    {# Sort chores alphabetically by name #} {% for c in
+                    rooms.map[room] | sort(attribute='name') %} - ✨ **{{ c.name
+                    }}** — _{{ c.rec }}_
+
+                    {% endfor %}
+
+                    {% endfor %}
 
 ```

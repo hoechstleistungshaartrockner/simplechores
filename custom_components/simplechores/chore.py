@@ -201,6 +201,128 @@ class Chore:
             # Was overdue but isn't anymore
             self.mark_pending()
 
+    def get_recurrence_friendly_string(self) -> str:
+        """Generate a user-friendly string describing the recurrence pattern.
+
+        Returns:
+            A human-readable string describing when the chore recurs.
+            Examples: "every day", "every 2 days", "every Saturday", "on the 15th of every month"
+        """
+        if self.recurrence_pattern == FREQUENCY_NONE:
+            return "no recurrence"
+
+        if self.recurrence_pattern == FREQUENCY_DAILY:
+            if self.recurrence_interval == 1:
+                return "every day"
+            else:
+                return f"every {self.recurrence_interval} days"
+
+        if self.recurrence_pattern == FREQUENCY_INTERVAL_DAYS:
+            if self.recurrence_interval == 1:
+                return "every day"
+            else:
+                return f"every {self.recurrence_interval} days"
+
+        if self.recurrence_pattern == FREQUENCY_SPECIFIC_DAYS:
+            if not self.recurrence_specific_weekdays:
+                return "every day"
+            weekday_names = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ]
+            days = [weekday_names[d] for d in sorted(self.recurrence_specific_weekdays)]
+            if len(days) == 1:
+                return f"every {days[0]}"
+            elif len(days) == 2:
+                return f"every {days[0]} and {days[1]}"
+            else:
+                return f"every {', '.join(days[:-1])} and {days[-1]}"
+
+        if self.recurrence_pattern == FREQUENCY_MONTHLY_DAY:
+            if self.recurrence_day_of_month is None:
+                return "monthly"
+            day = self.recurrence_day_of_month
+            if day == -1:
+                return "on the last day of every month"
+            suffix = self._get_day_suffix(day)
+            return f"on the {day}{suffix} of every month"
+
+        if self.recurrence_pattern == FREQUENCY_MONTHLY_WEEKDAY:
+            if (
+                not self.recurrence_specific_weekdays
+                or self.recurrence_week_of_month is None
+            ):
+                return "monthly"
+            weekday_names = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ]
+            week_names = {
+                1: "first",
+                2: "second",
+                3: "third",
+                4: "fourth",
+                -1: "last",
+            }
+            weeks = (
+                [self.recurrence_week_of_month]
+                if isinstance(self.recurrence_week_of_month, int)
+                else self.recurrence_week_of_month
+            )
+            days = [weekday_names[d] for d in sorted(self.recurrence_specific_weekdays)]
+            parts = []
+            for week in weeks:
+                week_name = week_names.get(week, str(week))
+                day_str = days[0] if len(days) == 1 else f"{days[0]} of"
+                if len(days) == 1:
+                    parts.append(f"every {week_name} {day_str} of the month")
+                else:
+                    parts.append(f"every {week_name} {', '.join(days[:-1])} and {days[-1]} of the month")
+            return " and ".join(parts) if len(parts) > 1 else parts[0]
+
+        if self.recurrence_pattern == FREQUENCY_ANNUAL:
+            if self.recurrence_annual_month is None or self.recurrence_annual_day is None:
+                return "annually"
+            month_names = [
+                "",
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ]
+            month_name = month_names[self.recurrence_annual_month]
+            if self.recurrence_annual_day == -1:
+                return f"on December 31st"
+            else:
+                day_suffix = self._get_day_suffix(self.recurrence_annual_day)
+                return f"on {month_name} {self.recurrence_annual_day}{day_suffix}"
+
+        return "unknown recurrence"
+
+    def _get_day_suffix(self, day: int) -> str:
+        """Get the ordinal suffix for a day number (st, nd, rd, th)."""
+        if 10 <= day % 100 <= 20:
+            return "th"
+        return {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+
     def schedule_due_date(self, from_date: date | None = None) -> None:
         """Calculate and set the due date based on the recurrence pattern.
 

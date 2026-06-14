@@ -11,6 +11,7 @@ from homeassistant import config as hass_config
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
+    CHORE_FILTER_STATES,
     DOMAIN,
     CONF_MEMBERS,
     PLATFORMS,
@@ -37,8 +38,7 @@ async def async_ensure_dashboard_filter_helpers(
     # Initialize dashboard filters for all members
     for member in storage.get_members().values():
         member.init_dashboard_filters(all_member_names)
-
-    await storage.async_save()
+        member.init_dashboard_state_filters(CHORE_FILTER_STATES)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType):

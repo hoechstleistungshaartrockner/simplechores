@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
@@ -23,6 +24,7 @@ from .const import (
     SORT_OPTION_AREA,
     SORT_OPTION_DUE_DATE,
     SORT_OPTION_NAME,
+    SIGNAL_SORT_PRIORITY_UPDATED,
 )
 from .coordinator import SimpleChoresCoordinator
 
@@ -212,6 +214,7 @@ class DashboardSortingPriorityNumber(NumberEntity):
         self.entity_id = (
             f"number.{member_name}_sort_priority_{criterion}".lower().replace(" ", "_")
         )
+        self._update_dispatcher_unsub = None
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -242,6 +245,34 @@ class DashboardSortingPriorityNumber(NumberEntity):
         }
         return attrs
 
+    async def async_added_to_hass(self) -> None:
+        """Register dispatcher update handler."""
+        self._update_dispatcher_unsub = async_dispatcher_connect(
+            self.hass,
+            SIGNAL_SORT_PRIORITY_UPDATED,
+            self._handle_sort_priority_updated,
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Unregister dispatcher update handler."""
+        if self._update_dispatcher_unsub is not None:
+            self._update_dispatcher_unsub()
+            self._update_dispatcher_unsub = None
+
+    def _handle_sort_priority_updated(self, member_name: str) -> None:
+        """Handle sort priority updates for the current member.
+
+        This callback may be invoked from a worker thread. Schedule the
+        entity state write on the event loop thread to avoid thread-safety
+        errors when calling `async_write_ha_state()`.
+        """
+        if member_name != self.member_name:
+            return
+        try:
+            self.hass.loop.call_soon_threadsafe(self.async_write_ha_state)
+        except Exception as exc:  # defensive: should not normally fail
+            LOGGER.exception("Failed to schedule state write: %s", exc)
+
     async def async_set_native_value(self, value: float) -> None:
         """Update the sort priority value."""
         member = self.storage.get_member(self.member_name)
@@ -250,11 +281,9 @@ class DashboardSortingPriorityNumber(NumberEntity):
             return
 
         member.set_sort_priority(self.criterion, int(value))
-        self.storage.update_member(member)
-        await self.storage.async_save()
-        await self.coordinator.async_refresh()
 
         self.async_write_ha_state()
+        async_dispatcher_send(self.hass, SIGNAL_SORT_PRIORITY_UPDATED, self.member_name)
         LOGGER.info(
             f"Member '{self.member_name}' sort priority for {self.criterion} updated to {int(value)}"
         )

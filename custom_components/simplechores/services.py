@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 from datetime import date, timedelta
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
     DOMAIN,
@@ -24,6 +25,7 @@ from .const import (
     CHORE_STATE_PENDING,
     CHORE_STATE_COMPLETED,
     CHORE_STATE_OVERDUE,
+    SIGNAL_SORT_PRIORITY_UPDATED,
 )
 
 # Service schemas
@@ -270,7 +272,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     LOGGER.debug(
                         f"Chore '{chore.name}' status updated from {old_status} to {chore.status}"
                     )
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 LOGGER.warning(
                     f"Invalid due_date for chore '{chore.name}': {chore.due_date}"
                 )
@@ -394,14 +396,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             return
 
         member.set_sort_priority(sort_criterion, target_level)
-        storage.update_member(member)
-
-        # Immediately update coordinator data so the UI reflects the change.
-        coordinator.async_set_updated_data(storage.data)
-
-        # Save in the background without delaying the service response.
-        hass.async_create_task(storage.async_save())
-
+        async_dispatcher_send(hass, SIGNAL_SORT_PRIORITY_UPDATED, member_name)
         LOGGER.info(
             "Member '%s' sort priority for %s %s to %s",
             member_name,

@@ -59,7 +59,6 @@ async def async_setup_entry(
                 )
             )
 
-    await storage.async_save()
     async_add_entities(switches)
 
 
@@ -129,8 +128,6 @@ class DashboardUserFilterSwitch(SwitchEntity):
         member = self.storage.get_member(self.member_name)
         if member:
             member.set_dashboard_filter(self.other_member_name, True)
-            self.storage.update_member(member)
-            await self.storage.async_save()
             self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
@@ -138,8 +135,6 @@ class DashboardUserFilterSwitch(SwitchEntity):
         member = self.storage.get_member(self.member_name)
         if member:
             member.set_dashboard_filter(self.other_member_name, False)
-            self.storage.update_member(member)
-            await self.storage.async_save()
             self.async_write_ha_state()
 
 
@@ -211,8 +206,6 @@ class DashboardStateFilterSwitch(SwitchEntity):
         member = self.storage.get_member(self.member_name)
         if member:
             member.set_dashboard_state_filter(self.state_name, True)
-            self.storage.update_member(member)
-            await self.storage.async_save()
             self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
@@ -220,6 +213,4 @@ class DashboardStateFilterSwitch(SwitchEntity):
         member = self.storage.get_member(self.member_name)
         if member:
             member.set_dashboard_state_filter(self.state_name, False)
-            self.storage.update_member(member)
-            await self.storage.async_save()
             self.async_write_ha_state()

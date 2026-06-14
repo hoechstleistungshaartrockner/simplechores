@@ -24,6 +24,7 @@ from .const import (
     MEMBER_FIELD_PREFIX_POINTS,
     MEMBER_FIELD_PREFIX_CHORES,
     DEFAULT_SORT_HIERARCHY,
+    CHORE_FILTER_STATES,
 )
 
 
@@ -51,7 +52,9 @@ class Member:
         if self.dashboard_filter is None:
             self.dashboard_filter = {}
         if self.dashboard_state_filter is None:
-            self.dashboard_state_filter = {}
+            self.dashboard_state_filter = {
+                state_name: True for state_name in CHORE_FILTER_STATES
+            }
         if self.dashboard_sort_hierarchy is None:
             self.dashboard_sort_hierarchy = DEFAULT_SORT_HIERARCHY.copy()
 
@@ -60,6 +63,10 @@ class Member:
         data = asdict(self)
         # Remove the 'name' key since it's used as the dictionary key in storage
         data.pop(MEMBER_FIELD_NAME, None)
+        # Dashboard filters and sort hierarchy are runtime-only and should not be persisted.
+        data.pop("dashboard_filter", None)
+        data.pop("dashboard_state_filter", None)
+        data.pop("dashboard_sort_hierarchy", None)
         return data
 
     @classmethod
@@ -77,8 +84,6 @@ class Member:
             chores_completed_this_year=data.get(MEMBER_FIELD_CHORES_THIS_YEAR, 0),
             n_chores_pending=data.get(MEMBER_FIELD_PENDING_CHORES, 0),
             n_chores_overdue=data.get(MEMBER_FIELD_OVERDUE_CHORES, 0),
-            dashboard_filter=data.get("dashboard_filter", {}),
-            dashboard_state_filter=data.get("dashboard_state_filter", {}),
             dashboard_sort_hierarchy=data.get(
                 "dashboard_sort_hierarchy", DEFAULT_SORT_HIERARCHY.copy()
             ),
@@ -160,8 +165,7 @@ class Member:
     def init_dashboard_filters(self, all_member_names: list[str]):
         """Initialize dashboard filters for all known members."""
         for member_name in all_member_names:
-            if member_name not in self.dashboard_filter:
-                self.dashboard_filter[member_name] = False
+            self.dashboard_filter[member_name] = member_name == self.name
 
     def remove_dashboard_filter(self, other_user_name: str):
         """Remove dashboard filter for a user (when they're deleted)."""
@@ -179,7 +183,7 @@ class Member:
         """Initialize dashboard state filters for all known chore states."""
         for state_name in state_names:
             if state_name not in self.dashboard_state_filter:
-                self.dashboard_state_filter[state_name] = False
+                self.dashboard_state_filter[state_name] = True
 
     def get_sort_priority(self, criterion: str) -> int | None:
         """Get the sort priority for a specific criterion."""

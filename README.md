@@ -73,7 +73,17 @@ mode: single
 ### Dashboard
 To implement the dashboard you have seen (source code at the bottom of the README), you need to copy the source code and adjust it to your needs (which mainly consists of changing the user names)
 
-First, create a new dashboard!
+Install dependencies:
+
+To make this work, you need to install the following projects from HACS:
+- decluttering-card
+- auto-entities
+- bubble-card
+- simple-tabs
+- button-card
+
+
+Create a new dashboard!
 1. Go to "Settings" -> "Dashboards" -> "Add dashboard" -> "New dashboard from scratch"
 2. Give it a name and an icon (I recommend mdi:checkbox-marked-outline)
 3. Make sure it is in the side bar for easy access.
@@ -251,19 +261,6 @@ Each chore is assigned a unique `chore_id` in the format `{sanitized_chore_name}
     - `related_entities`: dictionary of related entity IDs for this chore
 
 ## Example Dashboard Configuration
-
-<img src="./custom_components/simplechores/docs/dashboard_screenshot.png" alt="Screenshot of Dashboard Suggestion" />
-
-This code snippet demonstrates how to create a chore dashboard using the decluttering-card and auto-entities card. It organizes chores into sections based on their state (overdue, pending, completed) and allows users to toggle chore states directly from the dashboard.
-**You need to adjust this code to fit your specific needs**. I guess the minimum would be to change the user variable (look out for 'user: test' and 'user: Member 2')
-
-To make this work, you need to install the following HACS plugins:
-
-- decluttering-card
-- auto-entities
-- bubble-card
-- simple-tabs
-- button-card
 
 ```yaml
 decluttering_templates:

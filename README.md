@@ -3,8 +3,10 @@
 
 <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=hoechstleistungshaartrockner&repository=simplechores&category=integration" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open your Home Assistant instance and open a repository inside the Home Assistant Community Store." /></a>
 
-# Home Assistant Simple Chores
-A Home Assistant integration to manage and track household chores. It allows you to create chores, assign them to family members, set due dates.
+# Simple Chores
+A Home Assistant integration to manage and track household chores. It allows you to create chores, assign them to family members, set due dates etc.
+
+<img src="./custom_components/simplechores/docs/simplechores_dashboard.gif">
 
 ## Features
 - Create and manage chores with due dates, custom recurrency and assigned members.
@@ -30,8 +32,73 @@ If you find this integration useful and want to support its development, please 
 8. Go to "Configuration" → "Integrations" in Home Assistant.
 9. Click the "+" button to add a new integration.
 10. Search for "Simple Chores" and follow the prompts to set it up.
-11. To add your first chore, click on the gear icon of the integration in the "Integrations" page, and click "Manage Chores". From there, you can create and manage your chores.
+11. When setting up the members it is important that they are IDENTICAL TO YOUR USERNAME.
 
+### First Chores
+
+To add your first chore, click on the gear icon of the integration in the "Integrations" page, and click "Manage Chores". From there, you can create, edit and manage your chores, just follow the prompts.
+Every chore is implemented as a "device" with with multiple entities (the specific ones are listed below). The entity names may NOT be renamed.
+Simplechores creates a lot of entities and devices. To not bottleneck the performance of Home Assistant, SimpleChores is designed to work **purely event-based**. None of the entities are updated automatically. Therefore you need to create an automation to update the chores once a day to update the status based on the time (e.g. pending -> overdue). A dedicated service was implemented. To create the automation,
+
+1. go to "Settings"
+2. Go to "Automations & scenes"
+3. Click "Create automation"
+4. click "create new automation"
+5. click "add trigger"
+6. click "Time and location"
+7. click "Time"
+8. set the time to 3 am (or whenever you want to update)
+9. click "add action"
+10. select "SimpleChores: Update chores status"
+11. Save.
+
+If you edit it in yaml mode, it should look something like this:
+
+```yaml
+alias: Update SimpleChores
+description: Updates status of SimpleChores' chores.
+triggers:
+  - trigger: time
+    at: "03:00:00"
+conditions: []
+actions:
+  - action: simplechores.update_chores
+    metadata: {}
+    data: {}
+mode: single
+```
+
+<img src="./custom_components/simplechores/docs/simplechores_update_automation.gif">
+
+### Dashboard
+To implement the dashboard you have seen (source code at the bottom of the README), you need to copy the source code and adjust it to your needs (which mainly consists of changing the user names)
+
+First, create a new dashboard!
+1. Go to "Settings" -> "Dashboards" -> "Add dashboard" -> "New dashboard from scratch"
+2. Give it a name and an icon (I recommend mdi:checkbox-marked-outline)
+3. Make sure it is in the side bar for easy access.
+
+Find your User ID for conditional cards:
+1. in the new dashboard create a new "conditional" card
+2. "Add condition" -> "user" -> click your username
+3. click "show code editor" -> copy the hash for later use to a separate file.
+
+Copy the source code!
+1. Go to your new dashboard
+2. hit the pencil in the upper right corner
+3. hit the three dots and "raw configuration editor", delete everything in the code and replace it with the dashboard code from below.
+
+Adjust the source code!
+1. Find all occurances of "<YOUR_HASH>" and replace it with the has you saved earlier.
+2. Find all occurances of "<MEMBER_NAME>" and replace it with your member name (but in all lower case and replace spaces with underlines (e.g. "Monika Musterfrau" -> "monika_musterfrau"))
+3. save!
+
+Now you have a dashboard, but only for yourself.
+If there are multiple members accessing this dashboard, you need to add some tweeks.
+1. Check out again the dashboard source code below. There are "conditional" cards. For each member, create such a card in the respective vertical stack container. Remember to adjust the hashes accordingly.
+2. Add their respective sensor entity to the graph card.
+
+If you could not follow these instructions, feel free to open a new issue to ask for advice.
 
 ## Created Devices and Entities
 In this integration, "Members" and "Chores" are the two main concepts. For both of these, the integration creates a device and multiple entities to represent their state.
@@ -199,55 +266,6 @@ To make this work, you need to install the following HACS plugins:
 - button-card
 
 ```yaml
-navbar-templates:
-  custom1:
-    layout:
-      auto_padding:
-        enabled: true
-        desktop_px: 100
-        mobile_px: 180
-    desktop:
-      position: left
-      min_width: 768
-      show_labels: true
-    mobile:
-      show_labels: true
-    routes:
-      - icon: mdi:home
-        label: Home
-        url: /dashboard-chores/home
-      - icon: mdi:sofa
-        label: Räume
-        url: /rooms-dashboard2/raume2
-      - icon: mdi:lightning-bolt
-        label: Energie
-        url: /energy
-      - icon: mdi:shield
-        label: Sicherheit
-        url: /security
-      - icon: mdi:checkbox-marked-outline
-        label: To Do
-        url: /dashboard-chores/chores
-        tap_action:
-          action: navigate
-          navigation_path: /dashboard-chores/{{ chores?tab=chores_tab_test }}
-        badge:
-          show: |
-            [[[
-                return (parseInt(states['sensor.' + hass.user.name + '_chores_pending'].state) + parseInt(states['sensor.test_chores_overdue'].state)) > 0;
-            ]]]
-          color: |
-            [[[
-              if (parseInt(states['sensor.' + hass.user.name + '_chores_overdue'].state) > 0) {
-                return "red";
-              } else {
-                return "yellow";
-              };
-            ]]]
-          count: |
-            [[[ 
-                return (parseInt(states['sensor.' + hass.user.name + '_chores_pending'].state) + parseInt(states['sensor.' + hass.user.name + '_chores_overdue'].state));
-            ]]]
 decluttering_templates:
   simplechores_filtering_options:
     card:
@@ -263,20 +281,12 @@ decluttering_templates:
           cards:
             - type: custom:bubble-card
               card_type: button
-              entity: switch.[[user]]_dashboard_user_filter_test
-              name: Test
-            - type: custom:bubble-card
-              card_type: button
               entity: switch.[[user]]_dashboard_user_filter_member_1
               name: Member 1
             - type: custom:bubble-card
               card_type: button
               entity: switch.[[user]]_dashboard_user_filter_member_2
               name: Member 2
-            - type: custom:bubble-card
-              card_type: button
-              entity: switch.[[user]]_dashboard_user_filter_horst
-              name: Horst
         - type: custom:bubble-card
           card_type: separator
           icon: mdi:exclamation-thick
@@ -302,7 +312,7 @@ decluttering_templates:
           icon: mdi:sort
           name: Sort by
         - type: custom:decluttering-card
-          template: sorting_buttons
+          template: simplechores_sorting_buttons
           variables:
             - user: '[[user]]'
   simplechores_list:
@@ -410,30 +420,30 @@ decluttering_templates:
             {{ {
               'entity': c.entity,
               'type': 'custom:decluttering-card',
-              'template': 'chore_button2',
+              'template': 'simplechores_chore_button',
               'variables': [{'entity': c.entity}]
             } }},
           {% endfor %} ]
-  sorting_buttons:
+  simplechores_sorting_buttons:
     card:
       type: vertical-stack
       cards:
         - type: custom:decluttering-card
-          template: sorting_button
+          template: simplechores_sorting_button
           variables:
             - entity: number.[[user]]_sort_priority_area
             - name: Area Priority
         - type: custom:decluttering-card
-          template: sorting_button
+          template: simplechores_sorting_button
           variables:
             - entity: number.[[user]]_sort_priority_due_date
             - name: Due Date Priority
         - type: custom:decluttering-card
-          template: sorting_button
+          template: simplechores_sorting_button
           variables:
             - entity: number.[[user]]_sort_priority_name
             - name: Name Priority
-  sorting_button:
+  simplechores_sorting_button:
     card:
       type: custom:bubble-card
       card_type: button
@@ -468,7 +478,7 @@ decluttering_templates:
               data:
                 entity_id: '[[entity]]'
         bottom: []
-  chore_button2:
+  simplechores_chore_button:
     card:
       type: custom:button-card
       entity: '[[entity]]'
@@ -573,12 +583,6 @@ decluttering_templates:
             return "/config/devices/device/" + entity.attributes.device_id;
           ]]]
 views:
-  - path: home
-    title: Home
-    type: sections
-    sections:
-      - type: custom:navbar-card
-        template: custom1
   - path: chores
     title: chores
     type: sections
@@ -598,12 +602,12 @@ views:
                       conditions:
                         - condition: user
                           users:
-                            - 10c27b06f659482da58e34825f3b91cf
+                            - <YOUR_HASH>
                       card:
                         type: custom:decluttering-card
                         template: simplechores_list
                         variables:
-                          - user: test
+                          - user: <MEMBER_NAME>
               - icon: mdi:cog
                 id: tab2
                 card:
@@ -613,12 +617,12 @@ views:
                       conditions:
                         - condition: user
                           users:
-                            - 10c27b06f659482da58e34825f3b91cf
+                            - <YOUR_HASH>
                       card:
                         type: custom:decluttering-card
                         template: simplechores_filtering_options
                         variables:
-                          - user: test
+                          - user: <MEMBER_NAME>
               - icon: mdi:star
                 card:
                   type: vertical-stack
@@ -668,10 +672,7 @@ views:
                       period: week
                       type: statistics-graph
                       entities:
-                        - sensor.test_points_earned_this_week
-                        - sensor.horst_points_earned_this_week
-                        - sensor.member_1_points_earned_this_week
-                        - sensor.member_2_points_earned_this_week
+                        - sensor.<MEMBER_NAME>_points_earned_this_week
                       stat_types:
                         - state
                       days_to_show: 90

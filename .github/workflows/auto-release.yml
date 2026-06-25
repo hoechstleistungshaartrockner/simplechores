@@ -55,13 +55,25 @@ jobs:
 
           ## Support Development
           If you find this integration useful and want to support its development, please consider fueling me with a coffee! Your support helps me dedicate more time to improving the integration and adding new features. Thank you!
-          
+
           <a href="https://www.buymeacoffee.com/haartrockner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-yellow.png" alt="Buy Me A Coffee" height="41" width="174"></a>
           EOF
 
           echo "Generated release notes:"
           cat release_notes.md
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          TAG="v${{ steps.version.outputs.version }}"
 
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+                      else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

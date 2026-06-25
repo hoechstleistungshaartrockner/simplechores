@@ -383,7 +383,12 @@ decluttering_templates:
 
             {# --- RAW VALUES --- #}
             {% set area = state_attr(e.entity_id, 'area_id') | default('') | lower %}
-            {% set due  = state_attr(e.entity_id, 'due_date') | default('') %}
+            {% set raw_due  = state_attr(e.entity_id, 'due_date') | default('') %}
+            {% if raw_due in [None, '', 'none'] %}
+              {% set due = (now() + timedelta(days=3650)).strftime('%Y-%m-%d') %}
+            {% else %}
+              {% set due = raw_due %}
+            {% endif %}
             {% set name = state_attr(e.entity_id, 'friendly_name') | default('') | lower %}
 
             {# BUILD ASPECT LIST WITH PRIORITY + VALUE #}
@@ -684,14 +689,18 @@ views:
 
                     {% set rooms = namespace(map={}) %}
 
-                    {# Collect chores grouped by room #} {% for e in states if
-                    '_status' in e.entity_id and e.attributes.integration ==
-                    'simplechores' %}
+                    {# Collect chores grouped by room #} {% for e in states
+                        if '_status' in e.entity_id
+                        and e.attributes is defined
+                        and e.attributes.integration is defined
+                        and e.attributes.integration == 'simplechores' %}
+
                       {% set room = e.attributes.area_id | default('Unknown') %}
                       {% set chore = {
-                        'name': e.attributes.chore_name,
-                        'rec': e.attributes.friendly_recurrence
+                        'name': e.attributes.chore_name | default('Unnamed Chore'),
+                        'rec': e.attributes.friendly_recurrence | default('Unknown')
                       } %}
+
                       {% if room in rooms.map %}
                         {% set rooms.map = rooms.map | combine({ room: rooms.map[room] + [chore] }) %}
                       {% else %}
@@ -699,15 +708,13 @@ views:
                       {% endif %}
                     {% endfor %}
 
-                    {# Sort rooms alphabetically #} {% for room in
-                    rooms.map.keys() | list | sort %} ## 🏠 {{ room |
-                    replace('_',' ') | title }}
+                    {# Sort rooms alphabetically #} {% for room in rooms.map.keys()
+                    | list | sort %} ## 🏠 {{ room | replace('_',' ') | title }}
 
-                    {# Sort chores alphabetically by name #} {% for c in
-                    rooms.map[room] | sort(attribute='name') %} - ✨ **{{ c.name
-                    }}** — _{{ c.rec }}_
-
-                    {% endfor %}
+                      {# Sort chores alphabetically by name #}
+                      {% for c in rooms.map[room] | sort(attribute='name') %}
+                      - ✨ **{{ c.name }}** — _{{ c.rec }}_
+                      {% endfor %}
 
                     {% endfor %}
 

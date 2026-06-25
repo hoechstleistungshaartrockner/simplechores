@@ -1,5 +1,9 @@
 
-<img src="./custom_components/simplechores/brand/logo.png"/>
+[![GitHub version](https://badge.fury.io/gh/hoechstleistungshaartrockner%2Fsimplechores.svg)](https://badge.fury.io/gh/hoechstleistungshaartrockner%2Fsimplechores)
+![GitHub Release](https://img.shields.io/github/v/release/hoechstleistungshaartrockner/simplechores)
+![GitHub License](https://img.shields.io/github/license/hoechstleistungshaartrockner/simplechores)
+
+<img src="./custom_components/simplechores/brand/logo.png" />
 
 <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=hoechstleistungshaartrockner&repository=simplechores&category=integration" target="_blank" rel="noreferrer noopener"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open your Home Assistant instance and open a repository inside the Home Assistant Community Store." /></a>
 

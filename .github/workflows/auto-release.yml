@@ -5,26 +5,52 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   create_release:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, ':bookmark: v')
+    if: ${{ contains(github.event.head_commit.message, ':bookmark: v') }}
 
     steps:
       - name: Extract version from commit message
         id: version
         run: |
           msg="${{ github.event.head_commit.message }}"
-          # Extract the version number after ":bookmark: v"
           ver=$(echo "$msg" | sed -n 's/.*:bookmark: v\([0-9.]*\).*/\1/p')
-          echo "version=$ver" >> $GITHUB_OUTPUT
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
+      - name: Validate version
+        run: |
+          if [ -z "${{ steps.version.outputs.version }}" ]; then
+            echo "No version found in commit message."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TAG="v${{ steps.version.outputs.version }}"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          release_name: v${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes

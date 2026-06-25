@@ -1,4 +1,4 @@
-name: Auto Release on Version Tag
+name: Auto Release
 
 on:
   push:
@@ -28,29 +28,47 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
 
-      - name: Create tag
+      - name: Generate release notes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
 
-          TAG="v${{ steps.version.outputs.version }}"
+          cat > release_notes.md <<'EOF'
+          # 🎉 Release Notes
 
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists"
+          ## What's New
+
+          EOF
+
+          if [ -n "$LAST_TAG" ]; then
+            git log "$LAST_TAG"..HEAD \
+              --pretty=format:"* %s" \
+              | grep -v ':bookmark: v' >> release_notes.md || true
           else
-            git tag "$TAG"
-            git push origin "$TAG"
+            git log \
+              --pretty=format:"* %s" \
+              | grep -v ':bookmark: v' >> release_notes.md || true
           fi
 
-      - name: Create Release
+          cat >> release_notes.md <<'EOF'
+
+          ## Support Development
+          If you find this integration useful and want to support its development, please consider fueling me with a coffee! Your support helps me dedicate more time to improving the integration and adding new features. Thank you!
+          
+          <a href="https://www.buymeacoffee.com/haartrockner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-yellow.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+          EOF
+
+          echo "Generated release notes:"
+          cat release_notes.md
+
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v${{ steps.version.outputs.version }}"
 
           gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
             --title "$TAG" \
-            --generate-notes
+            --notes-file release_notes.md
